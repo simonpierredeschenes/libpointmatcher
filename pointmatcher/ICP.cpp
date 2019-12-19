@@ -55,6 +55,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace PointMatcherSupport;
 
+std::chrono::time_point<std::chrono::steady_clock> lastTime;
+
 //! Construct an invalid--module-type exception
 InvalidModuleType::InvalidModuleType(const std::string& reason):
 	runtime_error(reason)
@@ -245,6 +247,7 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::operato
 	const DataPoints& readingIn,
 	const DataPoints& referenceIn)
 {
+	lastTime = std::chrono::steady_clock::now();
 	const int dim = readingIn.features.rows();
 	const TransformationParameters identity = TransformationParameters::Identity(dim, dim);
 	return this->compute(readingIn, referenceIn, identity);
@@ -367,6 +370,12 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::compute
 	this->prefilteredReadingPtsCount = reading.features.cols();
 	t.restart();
 	
+	std::chrono::duration<double> preprocessingTime = std::chrono::steady_clock::now() - lastTime;
+	std::ofstream timeFile;
+	timeFile.open("/tmp/icp/times.txt");
+	timeFile << preprocessingTime.count() * 1000 << std::endl;
+	lastTime = std::chrono::steady_clock::now();
+	
 	// iterations
 	while (iterate)
 	{
@@ -396,7 +405,6 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::compute
 		assert(outlierWeights.cols() == matches.ids.cols());
 		
 		//cout << "outlierWeights: " << outlierWeights << "\n";
-	
 		
 		//-----------------------------
 		// Dump
@@ -410,6 +418,20 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::compute
 		//   T_iter(i+1)_iter(0) = T_iter(i+1)_iter(i) * T_iter(i)_iter(0)
 		T_iter = this->errorMinimizer->compute(
 			stepReading, reference, outlierWeights, matches) * T_iter;
+		
+		ostringstream oss;
+		oss << "/tmp/icp/icp-transformation-" << iterationCount << ".txt";
+		ofstream* file = new ofstream(oss.str().c_str());
+		if (file->fail())
+			throw std::runtime_error("Couldn't open the file \"" + oss.str() + "\". Check if directory exist.");
+		
+		*file << (T_refIn_refMean * T_iter * T_refMean_dataIn) << std::endl;
+		
+		delete file;
+		
+		std::chrono::duration<double> iterationTime = std::chrono::steady_clock::now() - lastTime;
+		timeFile << iterationTime.count() * 1000 << std::endl;
+		lastTime = std::chrono::steady_clock::now();
 		
 		// Old version
 		//T_iter = T_iter * this->errorMinimizer->compute(
@@ -428,6 +450,8 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::compute
 	
 		++iterationCount;
 	}
+	
+	timeFile.close();
 	
 	this->inspector->addStat("IterationsCount", iterationCount);
 	this->inspector->addStat("PointCountTouched", this->matcher->getVisitCount());
