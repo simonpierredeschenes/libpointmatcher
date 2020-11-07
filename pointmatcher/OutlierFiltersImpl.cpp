@@ -322,7 +322,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::GenericDescripto
 	if(source == "reference")
 		cloud = &filteredReference;
 	else
-		cloud = &filteredReference;
+		cloud = &filteredReading;
 
 	ConstView desc(cloud->getDescriptorViewByName(descName));
 

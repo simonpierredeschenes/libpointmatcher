@@ -340,6 +340,7 @@ set(POINTMATCHER_SRC
 	pointmatcher/DataPointsFilters/DistanceLimit.cpp
 	pointmatcher/DataPointsFilters/RemoveSensorBias.cpp
 	pointmatcher/DataPointsFilters/Sphericality.cpp
+	pointmatcher/DataPointsFilters/NoiseSkew.cpp
 )
 
 
@@ -387,6 +388,10 @@ if (POSIX_TIMERS AND NOT APPLE)
 endif ()
 
 set_target_properties(pointmatcher PROPERTIES VERSION "${POINTMATCHER_PROJECT_VERSION}" SOVERSION 1)
+
+add_executable(main main.cpp)
+
+target_link_libraries(main pointmatcher)
 
 #========================= Install commands ===========================
 
