@@ -302,7 +302,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		T threshold = upperQuartile + (15 * IQR);
 		std::vector<int> cornerIds;
 		visit_lambda(cornerness, [&cornerIds, threshold](double value, int i, int j){
-			if(value >= threshold)
+			if(value > threshold)
 			{
 				cornerIds.push_back(j);
 			}
