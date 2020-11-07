@@ -17,9 +17,9 @@ public:
 	inline static const std::string description()
 	{
 		return "Adds a 1D descriptor named <skewWeight> that represents the weight of each point in the minimization process, based on the skew caused by noise on speed and acceleration.\n\n"
-			   "Required descriptors: normals, observationDirections, ring (for 3D point clouds).\n"
+			   "Required descriptors: normals, rings (for 3D point clouds).\n"
 			   "Required times: stamps.\n"
-			   "Produced descritors:  skewWeight.\n"
+			   "Produced descriptors:  skewWeight.\n"
 			   "Sensor assumed to be at the origin: yes\n"
 			   "Altered descriptors:  none.\n"
 			   "Altered features:     none.";
@@ -29,15 +29,16 @@ public:
 	{
 		return {
 				{ "skewModel",                "Skew model used for weighting. Choices: 0=Model based on time only, 1=Model based on speed and acceleration noises, 2=Model based on speed and acceleration noises and on incidence angle",
-																										   "0", "0",    "2147483647",
-																															   &Parametrizable::Comp <
-																															   unsigned > },
-				{ "linearSpeedNoise",         "Noise on linear speed",                                     "0", "-inf", "inf", &Parametrizable::Comp < T > },
-				{ "linearAccelerationNoise",  "Noise on linear acceleration",                              "0", "-inf", "inf", &Parametrizable::Comp < T > },
-				{ "angularSpeedNoise",        "Noise on angular speed",                                    "0", "-inf", "inf", &Parametrizable::Comp < T > },
-				{ "angularAccelerationNoise", "Noise on angular acceleration",                             "0", "-inf", "inf", &Parametrizable::Comp < T > },
-				{ "cornerPointWeight",        "Weight to give to points at junction of multiple surfaces", "1", "-inf", "inf", &Parametrizable::Comp < T > },
-				{ "weightQuantile",           "Quantile under which weights are set to 0",                 "0", "-inf", "inf", &Parametrizable::Comp < T > },
+																										   "0",    "0",    "2147483647",
+																																  &Parametrizable::Comp <
+																																  unsigned > },
+				{ "rangePrecision",           "Precision of range measurements",                           "0.02", "-inf", "inf", &Parametrizable::Comp < T > },
+				{ "linearSpeedNoise",         "Noise on linear speed",                                     "0",    "-inf", "inf", &Parametrizable::Comp < T > },
+				{ "linearAccelerationNoise",  "Noise on linear acceleration",                              "0",    "-inf", "inf", &Parametrizable::Comp < T > },
+				{ "angularSpeedNoise",        "Noise on angular speed",                                    "0",    "-inf", "inf", &Parametrizable::Comp < T > },
+				{ "angularAccelerationNoise", "Noise on angular acceleration",                             "0",    "-inf", "inf", &Parametrizable::Comp < T > },
+				{ "cornerPointWeight",        "Weight to give to points at junction of multiple surfaces", "1",    "-inf", "inf", &Parametrizable::Comp < T > },
+				{ "weightQuantile",           "Quantile under which weights are set to 0",                 "0",    "-inf", "inf", &Parametrizable::Comp < T > },
 		};
 	}
 	
@@ -46,13 +47,15 @@ public:
 	virtual DataPoints filter(const DataPoints& input);
 	
 	virtual void inPlaceFilter(DataPoints& value);
-	
+
 private:
 	template<typename U>
 	std::vector<int> computeOrdering(const Eigen::Matrix<U, 1, Eigen::Dynamic>& elements);
+	
 	void applyOrdering(const std::vector<int>& ordering, Eigen::Array<int, 1, Eigen::Dynamic>& idTable, DataPoints& dataPoints);
 	
 	const unsigned skewModel;
+	const T rangePrecision;
 	const T linearSpeedNoise;
 	const T linearAccelerationNoise;
 	const T angularSpeedNoise;

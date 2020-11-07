@@ -35,11 +35,12 @@ std::vector<int> NoiseSkewDataPointsFilter<T>::computeOrdering(const Eigen::Matr
 }
 
 template<typename T>
-void NoiseSkewDataPointsFilter<T>::applyOrdering(const std::vector<int>& ordering, Eigen::Array<int, 1, Eigen::Dynamic>& idTable, DataPoints& dataPoints)
+void NoiseSkewDataPointsFilter<T>::applyOrdering(const std::vector<int>& ordering, Eigen::Array<int, 1, Eigen::Dynamic>& idTable,
+												 DataPoints& dataPoints)
 {
 	std::vector<int> newIndices(ordering.size());
 	std::iota(newIndices.begin(), newIndices.end(), 0);
-	for(int i = 0; i < ordering.size(); i++)
+	for(size_t i = 0; i < ordering.size(); i++)
 	{
 		int indexToSwap = newIndices[ordering[i]];
 		idTable.col(i).swap(idTable.col(indexToSwap));
@@ -54,6 +55,7 @@ template<typename T>
 NoiseSkewDataPointsFilter<T>::NoiseSkewDataPointsFilter(const Parameters& params):
 		PointMatcher<T>::DataPointsFilter("NoiseSkewDataPointsFilter", NoiseSkewDataPointsFilter::availableParameters(), params),
 		skewModel(Parametrizable::get<unsigned>("skewModel")),
+		rangePrecision(Parametrizable::get<T>("rangePrecision")),
 		linearSpeedNoise(Parametrizable::get<T>("linearSpeedNoise")),
 		linearAccelerationNoise(Parametrizable::get<T>("linearAccelerationNoise")),
 		angularSpeedNoise(Parametrizable::get<T>("angularSpeedNoise")),
@@ -71,8 +73,6 @@ typename PointMatcher<T>::DataPoints NoiseSkewDataPointsFilter<T>::filter(const 
 	return output;
 }
 
-#include <iostream>
-
 template<typename T>
 void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 {
@@ -80,16 +80,10 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 	{
 		throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find normals in descriptors.");
 	}
-	if(!cloud.descriptorExists("observationDirections"))
-	{
-		throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find observation directions in descriptors.");
-	}
 	if(!cloud.timeExists("stamps"))
 	{
 		throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find stamps in times.");
 	}
-	
-	// TODO: remove observationDirections dependency
 	
 	std::vector<int> ringIds;
 	std::map<int, Eigen::Array<int, 1, Eigen::Dynamic>> idTables;
@@ -102,14 +96,14 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 	}
 	else
 	{
-		if(!cloud.descriptorExists("ring"))
+		if(!cloud.descriptorExists("rings"))
 		{
-			throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find ring in descriptors.");
+			throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find rings in descriptors.");
 		}
 		
 		std::map<int, int> pointCounts;
-		const auto& rings = cloud.getDescriptorViewByName("ring");
-		for(int i = 0; i < cloud.getNbPoints(); i++)
+		const auto& rings = cloud.getDescriptorViewByName("rings");
+		for(unsigned int i = 0; i < cloud.getNbPoints(); i++)
 		{
 			int ringId = rings(0, i);
 			if(idTables[ringId].cols() == 0)
@@ -129,34 +123,31 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		}
 	}
 	
-	for(const int& ringId: ringIds) // TODO: add this to main loop
-	{
-		const auto& stamps = ringDataPoints[ringId].getTimeViewByName("stamps");
-		std::vector<int> ordering = computeOrdering<std::int64_t>(stamps);
-		applyOrdering(ordering, idTables[ringId], ringDataPoints[ringId]);
-	}
-	
 	Array weights = Array::Zero(1, cloud.getNbPoints());
 	for(const int& ringId: ringIds)
 	{
 		Eigen::Array<int, 1, Eigen::Dynamic>& idTable = idTables[ringId];
 		typename PM::DataPoints& ring = ringDataPoints[ringId];
 		
-		const auto& normals = ring.getDescriptorViewByName("normals");
-		const auto& observationDirections = ring.getDescriptorViewByName("observationDirections");
 		const auto& stamps = ring.getTimeViewByName("stamps");
+		const auto& normals = ring.getDescriptorViewByName("normals");
 		
-		Array laserDirections = (-observationDirections.array()).rowwise() / observationDirections.array().pow(2).colwise().sum().sqrt();
-		Array firingDelays = (stamps.colwise() - stamps.col(0)).template cast<T>() / 1e9;
+		std::vector<int> stampOrdering = computeOrdering<std::int64_t>(stamps);
+		applyOrdering(stampOrdering, idTable, ring);
+		
 		Array points = ring.features.topRows(ring.getEuclideanDim());
+		Array laserDirections = points.rowwise() / points.pow(2).colwise().sum().sqrt();
+		Array firingDelays = (stamps.colwise() - stamps.col(0)).template cast<T>() / 1e9;
 		
-		Array linearVelocities = Array::Zero(points.rows(), points.cols());
-		linearVelocities.row(0) = Array::Constant(1, points.cols(), linearSpeedNoise);
-		
+		Array linearVelocities = Array::Constant(points.rows(), points.cols(), linearSpeedNoise);
 		Array linearAccelerations = Array::Constant(points.rows(), points.cols(), linearAccelerationNoise);
-		Array backwardRightPositions = (-linearVelocities).rowwise() * firingDelays.row(0) - linearAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
-		Array forwardRightPositions = linearVelocities.rowwise() * firingDelays.row(0) + linearAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
+		Array backwardTranslations = (-linearVelocities).rowwise() * firingDelays.row(0) - linearAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
+		Array forwardTranslations = linearVelocities.rowwise() * firingDelays.row(0) + linearAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
 		
+		Array btbrRightPositions = Array::Zero(points.rows(), points.cols());
+		Array btfrRightPositions = Array::Zero(points.rows(), points.cols());
+		Array ftbrRightPositions = Array::Zero(points.rows(), points.cols());
+		Array ftfrRightPositions = Array::Zero(points.rows(), points.cols());
 		Array backwardRightLaserDirections = Array::Zero(points.rows(), points.cols());
 		Array forwardRightLaserDirections = Array::Zero(points.rows(), points.cols());
 		Array backwardRotatedPoints = Array::Zero(points.rows(), points.cols());
@@ -165,11 +156,19 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		{
 			Array angularVelocities = Array::Constant(1, points.cols(), angularSpeedNoise);
 			Array angularAccelerations = Array::Constant(1, points.cols(), angularAccelerationNoise);
-			Array rightOrientations = angularVelocities * firingDelays + angularAccelerations * 0.5 * firingDelays.pow(2);
-			Array rotationMatrix11 = rightOrientations.cos();
-			Array rotationMatrix12 = -rightOrientations.sin();
-			Array rotationMatrix21 = rightOrientations.sin();
-			Array rotationMatrix22 = rightOrientations.cos();
+			Array rotations = angularVelocities * firingDelays + angularAccelerations * 0.5 * firingDelays.pow(2);
+			Array rotationMatrix11 = rotations.cos();
+			Array rotationMatrix12 = -rotations.sin();
+			Array rotationMatrix21 = rotations.sin();
+			Array rotationMatrix22 = rotations.cos();
+			btbrRightPositions.row(0) = rotationMatrix11 * backwardTranslations.row(0) + rotationMatrix21 * backwardTranslations.row(1);
+			btbrRightPositions.row(1) = rotationMatrix12 * backwardTranslations.row(0) + rotationMatrix22 * backwardTranslations.row(1);
+			btfrRightPositions.row(0) = rotationMatrix11 * backwardTranslations.row(0) + rotationMatrix12 * backwardTranslations.row(1);
+			btfrRightPositions.row(1) = rotationMatrix21 * backwardTranslations.row(0) + rotationMatrix22 * backwardTranslations.row(1);
+			ftbrRightPositions.row(0) = rotationMatrix11 * forwardTranslations.row(0) + rotationMatrix21 * forwardTranslations.row(1);
+			ftbrRightPositions.row(1) = rotationMatrix12 * forwardTranslations.row(0) + rotationMatrix22 * forwardTranslations.row(1);
+			ftfrRightPositions.row(0) = rotationMatrix11 * forwardTranslations.row(0) + rotationMatrix12 * forwardTranslations.row(1);
+			ftfrRightPositions.row(1) = rotationMatrix21 * forwardTranslations.row(0) + rotationMatrix22 * forwardTranslations.row(1);
 			backwardRightLaserDirections.row(0) = rotationMatrix11 * laserDirections.row(0) + rotationMatrix21 * laserDirections.row(1);
 			backwardRightLaserDirections.row(1) = rotationMatrix12 * laserDirections.row(0) + rotationMatrix22 * laserDirections.row(1);
 			forwardRightLaserDirections.row(0) = rotationMatrix11 * laserDirections.row(0) + rotationMatrix12 * laserDirections.row(1);
@@ -181,15 +180,51 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		}
 		else
 		{
-			Array angularVelocities = Array::Constant(3, points.cols(), angularSpeedNoise); // TODO only speed in Z
+			Array angularVelocities = Array::Constant(3, points.cols(), angularSpeedNoise);
 			Array angularAccelerations = Array::Constant(3, points.cols(), angularAccelerationNoise);
-			Array rightOrientations = angularVelocities.rowwise() * firingDelays.row(0) + angularAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
+			Array rotations = angularVelocities.rowwise() * firingDelays.row(0) + angularAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
 			// https://math.stackexchange.com/questions/1874898/simultaneous-action-of-two-quaternions
-			Array angles = rightOrientations.pow(2).colwise().sum().sqrt();
-			Array axes = rightOrientations.rowwise() / angles.row(0);
+			Array angles = rotations.pow(2).colwise().sum().sqrt();
+			Array axes = rotations.rowwise() / angles.row(0);
 			axes.row(0) = axes.row(0).unaryExpr([](T value){ return std::isfinite(value) ? value : T(1); });
 			axes.row(1) = axes.row(1).unaryExpr([](T value){ return std::isfinite(value) ? value : T(0); });
 			axes.row(2) = axes.row(2).unaryExpr([](T value){ return std::isfinite(value) ? value : T(0); });
+			Array axesCrossBackwardTranslations = Array::Zero(axes.rows(), axes.cols());
+			axesCrossBackwardTranslations.row(0) = axes.row(1) * backwardTranslations.row(2) - axes.row(2) * backwardTranslations.row(1);
+			axesCrossBackwardTranslations.row(1) = axes.row(2) * backwardTranslations.row(0) - axes.row(0) * backwardTranslations.row(2);
+			axesCrossBackwardTranslations.row(2) = axes.row(0) * backwardTranslations.row(1) - axes.row(1) * backwardTranslations.row(0);
+			Array axesAxesTBackwardTranslations = Array::Zero(axes.rows(), axes.cols());
+			axesAxesTBackwardTranslations.row(0) = axes.row(0) * axes.row(0) * backwardTranslations.row(0) +
+												   axes.row(0) * axes.row(1) * backwardTranslations.row(1) +
+												   axes.row(0) * axes.row(2) * backwardTranslations.row(2);
+			axesAxesTBackwardTranslations.row(1) = axes.row(1) * axes.row(0) * backwardTranslations.row(0) +
+												   axes.row(1) * axes.row(1) * backwardTranslations.row(1) +
+												   axes.row(1) * axes.row(2) * backwardTranslations.row(2);
+			axesAxesTBackwardTranslations.row(2) = axes.row(2) * axes.row(0) * backwardTranslations.row(0) +
+												   axes.row(2) * axes.row(1) * backwardTranslations.row(1) +
+												   axes.row(2) * axes.row(2) * backwardTranslations.row(2);
+			Array axesCrossForwardTranslations = Array::Zero(axes.rows(), axes.cols());
+			axesCrossForwardTranslations.row(0) = axes.row(1) * forwardTranslations.row(2) - axes.row(2) * forwardTranslations.row(1);
+			axesCrossForwardTranslations.row(1) = axes.row(2) * forwardTranslations.row(0) - axes.row(0) * forwardTranslations.row(2);
+			axesCrossForwardTranslations.row(2) = axes.row(0) * forwardTranslations.row(1) - axes.row(1) * forwardTranslations.row(0);
+			Array axesAxesTForwardTranslations = Array::Zero(axes.rows(), axes.cols());
+			axesAxesTForwardTranslations.row(0) = axes.row(0) * axes.row(0) * forwardTranslations.row(0) +
+												  axes.row(0) * axes.row(1) * forwardTranslations.row(1) +
+												  axes.row(0) * axes.row(2) * forwardTranslations.row(2);
+			axesAxesTForwardTranslations.row(1) = axes.row(1) * axes.row(0) * forwardTranslations.row(0) +
+												  axes.row(1) * axes.row(1) * forwardTranslations.row(1) +
+												  axes.row(1) * axes.row(2) * forwardTranslations.row(2);
+			axesAxesTForwardTranslations.row(2) = axes.row(2) * axes.row(0) * forwardTranslations.row(0) +
+												  axes.row(2) * axes.row(1) * forwardTranslations.row(1) +
+												  axes.row(2) * axes.row(2) * forwardTranslations.row(2);
+			btbrRightPositions = backwardTranslations.rowwise() * (-(angles.row(0))).cos() + axesCrossBackwardTranslations.rowwise() * (-(angles.row(0))).sin()
+								 + axesAxesTBackwardTranslations.rowwise() * (1.0 - (-(angles.row(0))).cos());
+			btfrRightPositions = backwardTranslations.rowwise() * angles.row(0).cos() + axesCrossBackwardTranslations.rowwise() * angles.row(0).sin()
+								 + axesAxesTBackwardTranslations.rowwise() * (1.0 - angles.row(0).cos());
+			ftbrRightPositions = forwardTranslations.rowwise() * (-(angles.row(0))).cos() + axesCrossForwardTranslations.rowwise() * (-(angles.row(0))).sin()
+								 + axesAxesTForwardTranslations.rowwise() * (1.0 - (-(angles.row(0))).cos());
+			ftfrRightPositions = forwardTranslations.rowwise() * angles.row(0).cos() + axesCrossForwardTranslations.rowwise() * angles.row(0).sin()
+								 + axesAxesTForwardTranslations.rowwise() * (1.0 - angles.row(0).cos());
 			Array axesCrossLaserDirections = Array::Zero(axes.rows(), axes.cols());
 			axesCrossLaserDirections.row(0) = axes.row(1) * laserDirections.row(2) - axes.row(2) * laserDirections.row(1);
 			axesCrossLaserDirections.row(1) = axes.row(2) * laserDirections.row(0) - axes.row(0) * laserDirections.row(2);
@@ -228,25 +263,41 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 								   + axesAxesTPoints.rowwise() * (1.0 - angles.row(0).cos());
 		}
 		
-		Array backwardRightDistances = ((points - backwardRightPositions) * normals.array()).colwise().sum() / //TODO: need to check backwardRightPositions with
-									   (backwardRightLaserDirections * normals.array()).colwise().sum();      //TODO: forwardRightLaserDirections and vice-versa
-		Array forwardRightDistances = ((points - forwardRightPositions) * normals.array()).colwise().sum() /
-									  (forwardRightLaserDirections * normals.array()).colwise().sum();
-		Array backwardCorrectedPoints = backwardRotatedPoints - backwardRightPositions;
-		Array forwardCorrectedPoints = forwardRotatedPoints - forwardRightPositions;
-		Array backwardCorrectedPointDirections = backwardCorrectedPoints.rowwise() / backwardCorrectedPoints.pow(2).colwise().sum().sqrt();
-		Array forwardCorrectedPointDirections = forwardCorrectedPoints.rowwise() / forwardCorrectedPoints.pow(2).colwise().sum().sqrt();
+		Array btbrRightDistances = ((points - btbrRightPositions) * normals.array()).colwise().sum() /
+								   (backwardRightLaserDirections * normals.array()).colwise().sum();
+		Array btfrRightDistances = ((points - btfrRightPositions) * normals.array()).colwise().sum() /
+								   (forwardRightLaserDirections * normals.array()).colwise().sum();
+		Array ftbrRightDistances = ((points - ftbrRightPositions) * normals.array()).colwise().sum() /
+								   (backwardRightLaserDirections * normals.array()).colwise().sum();
+		Array ftfrRightDistances = ((points - ftfrRightPositions) * normals.array()).colwise().sum() /
+								   (forwardRightLaserDirections * normals.array()).colwise().sum();
+		Array btbrCorrectedPoints = backwardRotatedPoints - backwardTranslations;
+		Array btfrCorrectedPoints = forwardRotatedPoints - backwardTranslations;
+		Array ftbrCorrectedPoints = backwardRotatedPoints - forwardTranslations;
+		Array ftfrCorrectedPoints = forwardRotatedPoints - forwardTranslations;
+		Array btbrCorrectedPointDirections = btbrCorrectedPoints.rowwise() / btbrCorrectedPoints.pow(2).colwise().sum().sqrt();
+		Array btfrCorrectedPointDirections = btfrCorrectedPoints.rowwise() / btfrCorrectedPoints.pow(2).colwise().sum().sqrt();
+		Array ftbrCorrectedPointDirections = ftbrCorrectedPoints.rowwise() / ftbrCorrectedPoints.pow(2).colwise().sum().sqrt();
+		Array ftfrCorrectedPointDirections = ftfrCorrectedPoints.rowwise() / ftfrCorrectedPoints.pow(2).colwise().sum().sqrt();
 		
-		Array estimatedErrors = (forwardRightDistances - backwardRightDistances).abs();
-		Array ringWeights = 1.0 / (estimatedErrors.pow(2) + 0.01);
+		Array allPossibleErrors = Array::Zero(6, points.cols());
+		allPossibleErrors.row(0) = (btbrRightDistances - btfrRightDistances).abs();
+		allPossibleErrors.row(1) = (btbrRightDistances - ftbrRightDistances).abs();
+		allPossibleErrors.row(2) = (btbrRightDistances - ftfrRightDistances).abs();
+		allPossibleErrors.row(3) = (btfrRightDistances - ftbrRightDistances).abs();
+		allPossibleErrors.row(4) = (btfrRightDistances - ftfrRightDistances).abs();
+		allPossibleErrors.row(5) = (ftbrRightDistances - ftfrRightDistances).abs();
+		
+		Array estimatedErrors = allPossibleErrors.colwise().maxCoeff();
+		Array ringWeights = 1.0 / (estimatedErrors.pow(2) + rangePrecision);
 		
 		Array cornerness = Array::Zero(estimatedErrors.rows(), estimatedErrors.cols());
 		cornerness.block(0, 1, 1, cornerness.cols() - 1) = (estimatedErrors.block(0, 1, 1, estimatedErrors.cols() - 1) -
 															estimatedErrors.block(0, 0, 1, estimatedErrors.cols() - 1)).abs();
 		Array sortedCornerness(cornerness);
 		std::sort(sortedCornerness.data(), sortedCornerness.data() + sortedCornerness.size());
-		T lowerQuartile = sortedCornerness(0, sortedCornerness.cols() / 4);
-		T upperQuartile = sortedCornerness(0, 3 * sortedCornerness.cols() / 4);
+		T lowerQuartile = sortedCornerness(0, std::ceil(sortedCornerness.cols() / 4.0) - 1);
+		T upperQuartile = sortedCornerness(0, std::ceil(3.0 * sortedCornerness.cols() / 4.0) - 1);
 		T IQR = upperQuartile - lowerQuartile;
 		T threshold = upperQuartile + (15 * IQR);
 		std::vector<int> cornerIds;
@@ -258,16 +309,22 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		});
 		
 		Array pointHorizontalAngles;
-		Array backwardCorrectedPointHorizontalAngles;
-		Array forwardCorrectedPointHorizontalAngles;
+		Array btbrCorrectedPointHorizontalAngles;
+		Array btfrCorrectedPointHorizontalAngles;
+		Array ftbrCorrectedPointHorizontalAngles;
+		Array ftfrCorrectedPointHorizontalAngles;
 		if(ring.getEuclideanDim() == 2)
 		{
 			pointHorizontalAngles = laserDirections.row(1)
 					.binaryExpr(laserDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
-			backwardCorrectedPointHorizontalAngles = backwardCorrectedPointDirections.row(1)
-					.binaryExpr(backwardCorrectedPointDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
-			forwardCorrectedPointHorizontalAngles = forwardCorrectedPointDirections.row(1)
-					.binaryExpr(forwardCorrectedPointDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+			btbrCorrectedPointHorizontalAngles = btbrCorrectedPointDirections.row(1)
+					.binaryExpr(btbrCorrectedPointDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+			btfrCorrectedPointHorizontalAngles = btfrCorrectedPointDirections.row(1)
+					.binaryExpr(btfrCorrectedPointDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+			ftbrCorrectedPointHorizontalAngles = ftbrCorrectedPointDirections.row(1)
+					.binaryExpr(ftbrCorrectedPointDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+			ftfrCorrectedPointHorizontalAngles = ftfrCorrectedPointDirections.row(1)
+					.binaryExpr(ftfrCorrectedPointDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
 		}
 		else
 		{
@@ -276,23 +333,34 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			pointHorizontalAngles = (laserDirections.row(1) / pointVerticalAngles.cos())
 					.binaryExpr(laserDirections.row(0) / pointVerticalAngles.cos(),
 								[](double a, double b){ return std::atan2(a, b); }).template cast<T>();
-			Array backwardCorrectedPointVerticalAngles = backwardCorrectedPointDirections.row(2)
-					.unaryExpr([](double a){ return std::asin(a); }).template cast<T>();
-			backwardCorrectedPointHorizontalAngles = (backwardCorrectedPointDirections.row(1) / backwardCorrectedPointVerticalAngles.cos())
-					.binaryExpr(backwardCorrectedPointDirections.row(0) / backwardCorrectedPointVerticalAngles.cos(),
+			Array btbrCorrectedPointVerticalAngles = btbrCorrectedPointDirections.row(2).unaryExpr([](double a){ return std::asin(a); }).template cast<T>();
+			btbrCorrectedPointHorizontalAngles = (btbrCorrectedPointDirections.row(1) / btbrCorrectedPointVerticalAngles.cos())
+					.binaryExpr(btbrCorrectedPointDirections.row(0) / btbrCorrectedPointVerticalAngles.cos(),
 								[](double a, double b){ return std::atan2(a, b); }).template cast<T>();
-			Array forwardCorrectedPointVerticalAngles = forwardCorrectedPointDirections.row(2)
+			Array btfrCorrectedPointVerticalAngles = btfrCorrectedPointDirections.row(2)
 					.unaryExpr([](double a){ return std::asin(a); }).template cast<T>();
-			forwardCorrectedPointHorizontalAngles = (forwardCorrectedPointDirections.row(1) / forwardCorrectedPointVerticalAngles.cos())
-					.binaryExpr(forwardCorrectedPointDirections.row(0) / forwardCorrectedPointVerticalAngles.cos(),
+			btfrCorrectedPointHorizontalAngles = (btfrCorrectedPointDirections.row(1) / btfrCorrectedPointVerticalAngles.cos())
+					.binaryExpr(btfrCorrectedPointDirections.row(0) / btfrCorrectedPointVerticalAngles.cos(),
+								[](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+			Array ftbrCorrectedPointVerticalAngles = ftbrCorrectedPointDirections.row(2)
+					.unaryExpr([](double a){ return std::asin(a); }).template cast<T>();
+			ftbrCorrectedPointHorizontalAngles = (ftbrCorrectedPointDirections.row(1) / ftbrCorrectedPointVerticalAngles.cos())
+					.binaryExpr(ftbrCorrectedPointDirections.row(0) / ftbrCorrectedPointVerticalAngles.cos(),
+								[](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+			Array ftfrCorrectedPointVerticalAngles = ftfrCorrectedPointDirections.row(2)
+					.unaryExpr([](double a){ return std::asin(a); }).template cast<T>();
+			ftfrCorrectedPointHorizontalAngles = (ftfrCorrectedPointDirections.row(1) / ftfrCorrectedPointVerticalAngles.cos())
+					.binaryExpr(ftfrCorrectedPointDirections.row(0) / ftfrCorrectedPointVerticalAngles.cos(),
 								[](double a, double b){ return std::atan2(a, b); }).template cast<T>();
 		}
 		
 		Array cornerWeights = Array::Ones(1, points.cols());
 		for(const auto& cornerId: cornerIds)
 		{
-			T lowerHorizontalAngle = std::min(backwardCorrectedPointHorizontalAngles(0, cornerId), forwardCorrectedPointHorizontalAngles(0, cornerId));
-			T higherHorizontalAngle = std::max(backwardCorrectedPointHorizontalAngles(0, cornerId), forwardCorrectedPointHorizontalAngles(0, cornerId));
+			T lowerHorizontalAngle = std::min({ btbrCorrectedPointHorizontalAngles(0, cornerId), btfrCorrectedPointHorizontalAngles(0, cornerId),
+												ftbrCorrectedPointHorizontalAngles(0, cornerId), ftfrCorrectedPointHorizontalAngles(0, cornerId) });
+			T higherHorizontalAngle = std::max({ btbrCorrectedPointHorizontalAngles(0, cornerId), btfrCorrectedPointHorizontalAngles(0, cornerId),
+												 ftbrCorrectedPointHorizontalAngles(0, cornerId), ftfrCorrectedPointHorizontalAngles(0, cornerId) });
 			visit_lambda(pointHorizontalAngles, [this, &lowerHorizontalAngle, &higherHorizontalAngle, &cornerWeights](double value, int i, int j){
 				if(value >= lowerHorizontalAngle && value <= higherHorizontalAngle)
 				{
@@ -302,12 +370,15 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		}
 		ringWeights *= cornerWeights;
 		
-		std::vector<int> ordering = computeOrdering<T>(ringWeights);
-		int startIndex = weightQuantile * (ordering.size() - 1);
-		for(int i = startIndex; i < ordering.size(); i++)
-		{
-			weights(0, idTable(0, ordering[i])) = ringWeights(0, ordering[i]);
-		}
+		std::vector<int> weightOrdering = computeOrdering<T>(ringWeights);
+		int weightQuantileIndex = std::ceil(weightQuantile * (weightOrdering.size() - 1));
+		T weightQuantileValue = ringWeights(0, weightOrdering[weightQuantileIndex]);
+		visit_lambda(ringWeights, [&weightQuantileValue, &weights, &idTable](double value, int i, int j){
+			if(value >= weightQuantileValue)
+			{
+				weights(0, idTable(i, j)) = value;
+			}
+		});
 	}
 	cloud.addDescriptor("skewWeight", weights);
 }

@@ -389,10 +389,6 @@ endif ()
 
 set_target_properties(pointmatcher PROPERTIES VERSION "${POINTMATCHER_PROJECT_VERSION}" SOVERSION 1)
 
-add_executable(main main.cpp)
-
-target_link_libraries(main pointmatcher)
-
 #========================= Install commands ===========================
 
 install(FILES
