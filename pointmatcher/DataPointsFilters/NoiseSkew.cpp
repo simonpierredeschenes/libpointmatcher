@@ -167,7 +167,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			allPossibleErrors.row(5) = (ftbrCorrectedPoints - ftfrCorrectedPoints).pow(2).colwise().sum().sqrt() / 2.0;
 			
 			Array estimatedErrors = allPossibleErrors.colwise().maxCoeff();
-			weights = 1.0 / (estimatedErrors.pow(2) + rangePrecision);
+			weights = 1.0 / (estimatedErrors + rangePrecision).pow(2);
 			break;
 		}
 		case 2:
@@ -388,7 +388,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				allPossibleErrors.row(5) = (ftbrRightDistances - ftfrRightDistances).abs() / 2.0;
 				
 				Array estimatedErrors = allPossibleErrors.colwise().maxCoeff();
-				Array ringWeights = 1.0 / (estimatedErrors.pow(2) + rangePrecision);
+				Array ringWeights = 1.0 / (estimatedErrors + rangePrecision).pow(2);
 				
 				Array cornerness = Array::Zero(estimatedErrors.rows(), estimatedErrors.cols());
 				cornerness.block(0, 1, 1, cornerness.cols() - 1) = (estimatedErrors.block(0, 1, 1, estimatedErrors.cols() - 1) -
