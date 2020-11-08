@@ -12,12 +12,13 @@ public:
 	typedef typename PM::DataPoints DataPoints;
 	typedef Parametrizable::Parameters Parameters;
 	typedef typename PM::DataPoints::InvalidField InvalidField;
+	typedef Parametrizable::InvalidParameter InvalidParameter;
 	typedef Eigen::Array<T, Eigen::Dynamic, Eigen::Dynamic> Array;
 	
 	inline static const std::string description()
 	{
 		return "Adds a 1D descriptor named <skewWeight> that represents the weight of each point in the minimization process, based on the skew caused by noise on speed and acceleration.\n\n"
-			   "Required descriptors: normals, rings (for 3D point clouds).\n"
+			   "Required descriptors: normals (for skew model no. 2), rings (for 3D point clouds).\n"
 			   "Required times: stamps.\n"
 			   "Produced descriptors:  skewWeight.\n"
 			   "Sensor assumed to be at the origin: yes\n"
