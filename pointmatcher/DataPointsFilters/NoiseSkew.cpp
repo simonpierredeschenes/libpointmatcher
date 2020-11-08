@@ -86,6 +86,9 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 	{
 		case 0:
 		{
+			const auto& stamps = cloud.getTimeViewByName("stamps");
+			Array firingDelays = (stamps.array() - stamps.minCoeff()).template cast<T>() / 1e9;
+			weights = firingDelays.maxCoeff() - firingDelays;
 			break;
 		}
 		case 1:
@@ -93,7 +96,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			const auto& stamps = cloud.getTimeViewByName("stamps");
 			
 			Array points = cloud.features.topRows(cloud.getEuclideanDim());
-			Array firingDelays = (stamps.colwise() - stamps.col(0)).template cast<T>() / 1e9;
+			Array firingDelays = (stamps.array() - stamps.minCoeff()).template cast<T>() / 1e9;
 			
 			Array linearVelocities = Array::Constant(points.rows(), points.cols(), linearSpeedNoise);
 			Array linearAccelerations = Array::Constant(points.rows(), points.cols(), linearAccelerationNoise);
