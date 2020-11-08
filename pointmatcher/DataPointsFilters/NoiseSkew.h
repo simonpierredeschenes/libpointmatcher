@@ -5,7 +5,6 @@
 template<typename T>
 struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 {
-public:
 	typedef PointMatcher<T> PM;
 	typedef PointMatcherSupport::Parametrizable Parametrizable;
 	typedef Parametrizable::ParametersDoc ParametersDoc;
@@ -48,12 +47,6 @@ public:
 	virtual DataPoints filter(const DataPoints& input);
 	
 	virtual void inPlaceFilter(DataPoints& value);
-
-private:
-	template<typename U>
-	std::vector<int> computeOrdering(const Eigen::Matrix<U, 1, Eigen::Dynamic>& elements);
-	
-	void applyOrdering(const std::vector<int>& ordering, Eigen::Array<int, 1, Eigen::Dynamic>& idTable, DataPoints& dataPoints);
 	
 	const unsigned skewModel;
 	const T rangePrecision;
@@ -63,4 +56,10 @@ private:
 	const T angularAccelerationNoise;
 	const T cornerPointWeight;
 	const T weightQuantile;
+
+private:
+	template<typename U>
+	std::vector<int> computeOrdering(const Eigen::Matrix<U, 1, Eigen::Dynamic>& elements);
+	
+	void applyOrdering(const std::vector<int>& ordering, Eigen::Array<int, 1, Eigen::Dynamic>& idTable, DataPoints& dataPoints);
 };

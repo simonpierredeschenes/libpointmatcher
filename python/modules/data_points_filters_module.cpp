@@ -24,6 +24,7 @@
 #include "datapointsfilters/simple_sensor_noise.h"
 #include "datapointsfilters/sphericality.h"
 #include "datapointsfilters/surface_normal.h"
+#include "datapointsfilters/noise_skew.h"
 
 namespace pointmatcher
 {
@@ -55,5 +56,6 @@ namespace pointmatcher
 		pybindSimpleSensorNoise(datapointsfilterModule);
 		pybindSphericality(datapointsfilterModule);
 		pybindSurfaceNormal(datapointsfilterModule);
+		pybindNoiseSkew(datapointsfilterModule);
 	}
 }
