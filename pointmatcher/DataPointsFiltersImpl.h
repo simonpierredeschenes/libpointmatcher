@@ -64,6 +64,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DataPointsFilters/RemoveSensorBias.h"
 #include "DataPointsFilters/Sphericality.h"
 #include "DataPointsFilters/NoiseSkew.h"
+#include "DataPointsFilters/SurfaceCurvature.h"
 
 template<typename T>
 struct DataPointsFiltersImpl
@@ -96,6 +97,7 @@ struct DataPointsFiltersImpl
 	typedef ::RemoveSensorBiasDataPointsFilter<T> RemoveSensorBiasDataPointsFilter;
     typedef ::SphericalityDataPointsFilter<T> SphericalityDataPointsFilter;
     typedef ::NoiseSkewDataPointsFilter<T> NoiseSkewDataPointsFilter;
+    typedef ::SurfaceCurvatureDataPointsFilter<T> SurfaceCurvatureDataPointsFilter;
 
 
 

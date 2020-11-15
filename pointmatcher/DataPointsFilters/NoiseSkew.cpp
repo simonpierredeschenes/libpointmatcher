@@ -93,7 +93,13 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		}
 		case 1:
 		{
+			if(!cloud.descriptorExists("simpleSensorNoise"))
+			{
+				throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find simple sensor noise in descriptors.");
+			}
+			
 			const auto& stamps = cloud.getTimeViewByName("stamps");
+			const auto& simpleSensorNoise = cloud.getDescriptorViewByName("simpleSensorNoise");
 			
 			Array points = cloud.features.topRows(cloud.getEuclideanDim());
 			Array firingDelays = (stamps.array() - stamps.minCoeff()).template cast<T>() / 1e9;
@@ -167,7 +173,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			allPossibleErrors.row(5) = (ftbrCorrectedPoints - ftfrCorrectedPoints).pow(2).colwise().sum().sqrt() / 2.0;
 			
 			Array estimatedErrors = allPossibleErrors.colwise().maxCoeff();
-			weights = 1.0 / (estimatedErrors + rangePrecision).pow(2);
+			weights = 1.0 / (estimatedErrors + simpleSensorNoise.array()).pow(2);
 			break;
 		}
 		case 2:
@@ -400,7 +406,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				T IQR = upperQuartile - lowerQuartile;
 				T threshold = upperQuartile + (15 * IQR);
 				std::vector<int> cornerIds;
-				visit_lambda(cornerness, [&cornerIds, threshold](double value, int i, int j){
+				visit_lambda(cornerness, [&cornerIds, threshold](T value, int i, int j){
 					if(value > threshold)
 					{
 						cornerIds.push_back(j);
@@ -415,43 +421,33 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				if(ring.getEuclideanDim() == 2)
 				{
 					pointHorizontalAngles = laserDirections.row(1)
-							.binaryExpr(laserDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+							.binaryExpr(laserDirections.row(0), [](T a, T b){ return std::atan2(a, b); });
 					btbrCorrectedPointHorizontalAngles = btbrCorrectedPointDirections.row(1)
-							.binaryExpr(btbrCorrectedPointDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+							.binaryExpr(btbrCorrectedPointDirections.row(0), [](T a, T b){ return std::atan2(a, b); });
 					btfrCorrectedPointHorizontalAngles = btfrCorrectedPointDirections.row(1)
-							.binaryExpr(btfrCorrectedPointDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+							.binaryExpr(btfrCorrectedPointDirections.row(0), [](T a, T b){ return std::atan2(a, b); });
 					ftbrCorrectedPointHorizontalAngles = ftbrCorrectedPointDirections.row(1)
-							.binaryExpr(ftbrCorrectedPointDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+							.binaryExpr(ftbrCorrectedPointDirections.row(0), [](T a, T b){ return std::atan2(a, b); });
 					ftfrCorrectedPointHorizontalAngles = ftfrCorrectedPointDirections.row(1)
-							.binaryExpr(ftfrCorrectedPointDirections.row(0), [](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+							.binaryExpr(ftfrCorrectedPointDirections.row(0), [](T a, T b){ return std::atan2(a, b); });
 				}
 				else
 				{
-					Array pointVerticalAngles = laserDirections.row(2)
-							.unaryExpr([](double a){ return std::asin(a); }).template cast<T>();
+					Array pointVerticalAngles = laserDirections.row(2).unaryExpr([](T a){ return std::asin(a); });
 					pointHorizontalAngles = (laserDirections.row(1) / pointVerticalAngles.cos())
-							.binaryExpr(laserDirections.row(0) / pointVerticalAngles.cos(),
-										[](double a, double b){ return std::atan2(a, b); }).template cast<T>();
-					Array btbrCorrectedPointVerticalAngles = btbrCorrectedPointDirections.row(2)
-							.unaryExpr([](double a){ return std::asin(a); }).template cast<T>();
+							.binaryExpr(laserDirections.row(0) / pointVerticalAngles.cos(), [](T a, T b){ return std::atan2(a, b); });
+					Array btbrCorrectedPointVerticalAngles = btbrCorrectedPointDirections.row(2).unaryExpr([](T a){ return std::asin(a); });
 					btbrCorrectedPointHorizontalAngles = (btbrCorrectedPointDirections.row(1) / btbrCorrectedPointVerticalAngles.cos())
-							.binaryExpr(btbrCorrectedPointDirections.row(0) / btbrCorrectedPointVerticalAngles.cos(),
-										[](double a, double b){ return std::atan2(a, b); }).template cast<T>();
-					Array btfrCorrectedPointVerticalAngles = btfrCorrectedPointDirections.row(2)
-							.unaryExpr([](double a){ return std::asin(a); }).template cast<T>();
+							.binaryExpr(btbrCorrectedPointDirections.row(0) / btbrCorrectedPointVerticalAngles.cos(), [](T a, T b){ return std::atan2(a, b); });
+					Array btfrCorrectedPointVerticalAngles = btfrCorrectedPointDirections.row(2).unaryExpr([](T a){ return std::asin(a); });
 					btfrCorrectedPointHorizontalAngles = (btfrCorrectedPointDirections.row(1) / btfrCorrectedPointVerticalAngles.cos())
-							.binaryExpr(btfrCorrectedPointDirections.row(0) / btfrCorrectedPointVerticalAngles.cos(),
-										[](double a, double b){ return std::atan2(a, b); }).template cast<T>();
-					Array ftbrCorrectedPointVerticalAngles = ftbrCorrectedPointDirections.row(2)
-							.unaryExpr([](double a){ return std::asin(a); }).template cast<T>();
+							.binaryExpr(btfrCorrectedPointDirections.row(0) / btfrCorrectedPointVerticalAngles.cos(), [](T a, T b){ return std::atan2(a, b); });
+					Array ftbrCorrectedPointVerticalAngles = ftbrCorrectedPointDirections.row(2).unaryExpr([](T a){ return std::asin(a); });
 					ftbrCorrectedPointHorizontalAngles = (ftbrCorrectedPointDirections.row(1) / ftbrCorrectedPointVerticalAngles.cos())
-							.binaryExpr(ftbrCorrectedPointDirections.row(0) / ftbrCorrectedPointVerticalAngles.cos(),
-										[](double a, double b){ return std::atan2(a, b); }).template cast<T>();
-					Array ftfrCorrectedPointVerticalAngles = ftfrCorrectedPointDirections.row(2)
-							.unaryExpr([](double a){ return std::asin(a); }).template cast<T>();
+							.binaryExpr(ftbrCorrectedPointDirections.row(0) / ftbrCorrectedPointVerticalAngles.cos(), [](T a, T b){ return std::atan2(a, b); });
+					Array ftfrCorrectedPointVerticalAngles = ftfrCorrectedPointDirections.row(2).unaryExpr([](T a){ return std::asin(a); });
 					ftfrCorrectedPointHorizontalAngles = (ftfrCorrectedPointDirections.row(1) / ftfrCorrectedPointVerticalAngles.cos())
-							.binaryExpr(ftfrCorrectedPointDirections.row(0) / ftfrCorrectedPointVerticalAngles.cos(),
-										[](double a, double b){ return std::atan2(a, b); }).template cast<T>();
+							.binaryExpr(ftfrCorrectedPointDirections.row(0) / ftfrCorrectedPointVerticalAngles.cos(), [](T a, T b){ return std::atan2(a, b); });
 				}
 				
 				Array cornerWeights = Array::Ones(1, points.cols());
@@ -461,7 +457,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 														ftbrCorrectedPointHorizontalAngles(0, cornerId), ftfrCorrectedPointHorizontalAngles(0, cornerId) });
 					T higherHorizontalAngle = std::max({ btbrCorrectedPointHorizontalAngles(0, cornerId), btfrCorrectedPointHorizontalAngles(0, cornerId),
 														 ftbrCorrectedPointHorizontalAngles(0, cornerId), ftfrCorrectedPointHorizontalAngles(0, cornerId) });
-					visit_lambda(pointHorizontalAngles, [this, &lowerHorizontalAngle, &higherHorizontalAngle, &cornerWeights](double value, int i, int j){
+					visit_lambda(pointHorizontalAngles, [this, &lowerHorizontalAngle, &higherHorizontalAngle, &cornerWeights](T value, int i, int j){
 						if(value >= lowerHorizontalAngle && value <= higherHorizontalAngle)
 						{
 							cornerWeights(i, j) = cornerPointWeight;
@@ -470,8 +466,26 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				}
 				ringWeights *= cornerWeights;
 				
-				visit_lambda(ringWeights, [&weights, &idTable](double value, int i, int j){ weights(0, idTable(i, j)) = value; });
+				visit_lambda(ringWeights, [&weights, &idTable](T value, int i, int j){ weights(0, idTable(i, j)) = value; });
 			}
+			break;
+		}
+		case 3:
+		{
+			if(!cloud.descriptorExists("curvatures"))
+			{
+				throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find curvatures in descriptors.");
+			}
+			
+			const auto& stamps = cloud.getTimeViewByName("stamps");
+			const auto& curvatures = cloud.getDescriptorViewByName("curvatures");
+			
+			Array firingDelays = (stamps.colwise() - stamps.col(0)).template cast<T>() / 1e9;
+			Array scanningAngles = (firingDelays / firingDelays.maxCoeff()) * T(2 * M_PI);
+			Array partialWeights = Array::Zero(2, cloud.getNbPoints());
+			partialWeights.row(0) = (scanningAngles / T(4)).cos();
+			partialWeights.row(1) = (curvatures.array() / REFERENCE_CURVATURE).unaryExpr([](T a){ return std::max(std::min(a, T(1)), T(0.25)); });
+			weights = partialWeights.colwise().maxCoeff();
 			break;
 		}
 		default:

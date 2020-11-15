@@ -217,6 +217,17 @@ namespace PointMatcherSupport
 				{"pages", "260--267"},
 				{"doi", "10.1109/IM.2003.1240258"},
 				{"publisher", "IEEE Computer Society"}
+			}},
+			{"Al-Nuaimi2016", {
+				{"type", "inproceedings"},
+				{"author", "Al-Nuaimi, A. and Lopes, W. and Zeller, P. and Garcea, A. and Lopes, C. and Steinbach, E."},
+				{"title", "Analyzing LiDAR scan skewing and its impact on scan matching"},
+				{"journal", "2016 International Conference on Indoor Positioning and Indoor Navigation, 2016. IPIN 2016. Proceedings."},
+				{"year", "2016"},
+				{"isbn", "978-1-5090-2426-1"},
+				{"pages", "1-8"},
+				{"doi", "10.1109/IPIN.2016.7743598"},
+				{"publisher", "IEEE Computer Society"}
 			}}
 		};
 	}

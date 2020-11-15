@@ -53,7 +53,9 @@ SimpleSensorNoiseDataPointsFilter<T>::SimpleSensorNoiseDataPointsFilter(const Pa
 	std::vector<std::string> sensorNames = {"Sick LMS-1xx",
 											"Hokuyo URG-04LX",
 											"Hokuyo UTM-30LX",
-											"Kinect / Xtion","Sick Tim3xx"};
+											"Kinect / Xtion",
+											"Sick Tim3xx",
+											"Ouster OS1-Gen1"};
 	if (sensorType >= sensorNames.size())
 	{
 		throw InvalidParameter(
@@ -106,11 +108,16 @@ void SimpleSensorNoiseDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		noise = squaredValues*(0.5*0.00285);
 		break;
 	}
-  case 4: // Sick Tim3xx
-  {
-    noise = computeLaserNoise(0.004, 0.0053, -0.0092, cloud.features);
-    break;
-  }
+	case 4: // Sick Tim3xx
+	{
+		noise = computeLaserNoise(0.004, 0.0053, -0.0092, cloud.features);
+		break;
+	}
+	case 5: // Ouster OS1-Gen1
+	{
+		noise = computeLaserNoise(0.025, 0.0011, 0.0, cloud.features);
+		break;
+	}
 	default:
 		throw InvalidParameter(
 			(boost::format("SimpleSensorNoiseDataPointsFilter: Error, cannot compute noise for sensorType id %1% .") % sensorType).str());

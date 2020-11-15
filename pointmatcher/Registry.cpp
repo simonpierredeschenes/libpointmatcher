@@ -91,6 +91,7 @@ PointMatcher<T>::PointMatcher()
 	ADD_TO_REGISTRAR(DataPointsFilter, RemoveSensorBiasDataPointsFilter, typename DataPointsFiltersImpl<T>::RemoveSensorBiasDataPointsFilter)
     ADD_TO_REGISTRAR(DataPointsFilter, SphericalityDataPointsFilter, typename DataPointsFiltersImpl<T>::SphericalityDataPointsFilter)
     ADD_TO_REGISTRAR(DataPointsFilter, NoiseSkewDataPointsFilter, typename DataPointsFiltersImpl<T>::NoiseSkewDataPointsFilter)
+    ADD_TO_REGISTRAR(DataPointsFilter, SurfaceCurvatureDataPointsFilter, typename DataPointsFiltersImpl<T>::SurfaceCurvatureDataPointsFilter)
 
 
 	ADD_TO_REGISTRAR_NO_PARAM(Matcher, NullMatcher, typename MatchersImpl<T>::NullMatcher)

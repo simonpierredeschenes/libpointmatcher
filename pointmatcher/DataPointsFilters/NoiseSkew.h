@@ -17,10 +17,10 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	inline static const std::string description()
 	{
 		return "Adds a 1D descriptor named <skewWeight> that represents the weight of each point in the minimization process, based on the skew caused by noise on speed and acceleration.\n\n"
-			   "Required descriptors: normals (for skew model no. 2), rings (for 3D point clouds).\n"
+			   "Required descriptors: simpleSensorNoise (for skew model no. 1), normals (for skew model no. 2) curvatures (for skew model no. 3), rings (for 3D point clouds).\n"
 			   "Required times: stamps.\n"
 			   "Produced descriptors:  skewWeight.\n"
-			   "Sensor assumed to be at the origin: yes\n"
+			   "Sensor assumed to be at the origin: yes.\n"
 			   "Altered descriptors:  none.\n"
 			   "Altered features:     none.";
 	}
@@ -28,7 +28,7 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
-				{ "skewModel",                "Skew model used for weighting. Choices: 0=Model based on time only, 1=Model based on speed and acceleration noises, 2=Model based on speed and acceleration noises and on incidence angle",
+				{ "skewModel",                "Skew model used for weighting. Choices: 0=Model based on time only, 1=Model based on speed and acceleration noises, 2=Model based on speed and acceleration noises and on incidence angle, 3=Model based on \\cite{Al-Nuaimi2016}",
 																										   "0",    "0",    "2147483647",
 																																  &Parametrizable::Comp <
 																																  unsigned > },
@@ -62,4 +62,6 @@ private:
 	std::vector<int> computeOrdering(const Eigen::Matrix<U, 1, Eigen::Dynamic>& elements);
 	
 	void applyOrdering(const std::vector<int>& ordering, Eigen::Array<int, 1, Eigen::Dynamic>& idTable, DataPoints& dataPoints);
+	
+	const T REFERENCE_CURVATURE = 40.0;
 };

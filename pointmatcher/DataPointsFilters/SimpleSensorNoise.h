@@ -59,7 +59,7 @@ struct SimpleSensorNoiseDataPointsFilter: public PointMatcher<T>::DataPointsFilt
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
-			{"sensorType", "Type of the sensor used. Choices: 0=Sick LMS-1xx, 1=Hokuyo URG-04LX, 2=Hokuyo UTM-30LX, 3=Kinect/Xtion", "0", "0", "2147483647", &P::Comp<unsigned>},
+			{"sensorType", "Type of the sensor used. Choices: 0=Sick LMS-1xx, 1=Hokuyo URG-04LX, 2=Hokuyo UTM-30LX, 3=Kinect/Xtion, 4=Sick Tim3xx, 5=Ouster OS1-Gen1", "0", "0", "2147483647", &P::Comp<unsigned>},
 			{"gain", "If the point cloud is coming from an untrusty source, you can use the gain to augment the uncertainty", "1", "1", "inf", &P::Comp<T>}
 		};
 	}

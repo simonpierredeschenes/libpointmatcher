@@ -341,6 +341,7 @@ set(POINTMATCHER_SRC
 	pointmatcher/DataPointsFilters/RemoveSensorBias.cpp
 	pointmatcher/DataPointsFilters/Sphericality.cpp
 	pointmatcher/DataPointsFilters/NoiseSkew.cpp
+	pointmatcher/DataPointsFilters/SurfaceCurvature.cpp
 )
 
 

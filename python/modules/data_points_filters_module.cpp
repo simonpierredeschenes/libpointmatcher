@@ -25,6 +25,7 @@
 #include "datapointsfilters/sphericality.h"
 #include "datapointsfilters/surface_normal.h"
 #include "datapointsfilters/noise_skew.h"
+#include "datapointsfilters/surface_curvature.h"
 
 namespace pointmatcher
 {
@@ -57,5 +58,6 @@ namespace pointmatcher
 		pybindSphericality(datapointsfilterModule);
 		pybindSurfaceNormal(datapointsfilterModule);
 		pybindNoiseSkew(datapointsfilterModule);
+		pybindSurfaceCurvature(datapointsfilterModule);
 	}
 }
