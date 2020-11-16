@@ -291,17 +291,11 @@ template struct OutlierFiltersImpl<double>::SurfaceNormalOutlierFilter;
 template<typename T>
 OutlierFiltersImpl<T>::GenericDescriptorOutlierFilter::GenericDescriptorOutlierFilter(const Parameters& params):
 	OutlierFilter("GenericDescriptorOutlierFilter", GenericDescriptorOutlierFilter::availableParameters(), params),
-	source(Parametrizable::getParamValueString("source")),
 	descName(Parametrizable::getParamValueString("descName")),
 	useSoftThreshold(Parametrizable::get<bool>("useSoftThreshold")),
 	useLargerThan(Parametrizable::get<bool>("useLargerThan")),
 	threshold(Parametrizable::get<T>("threshold"))
 {
-	if(source != "reference" && source != "reading")
-	{
-		throw InvalidParameter(
-		(boost::format("GenericDescriptorOutlierFilter: Error, the parameter named 'source' can only be set to 'reference' or 'reading' but was set to %1%") % source).str());
-	}
 }
 
 template<typename T>
@@ -310,58 +304,63 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::GenericDescripto
 	const DataPoints& filteredReference,
 	const Matches& input)
 {
-	typedef typename DataPoints::ConstView ConstView;
-
 	const int knn = input.dists.rows();
 	const int readPtsCount = input.dists.cols();
 	
 	OutlierWeights w(knn, readPtsCount);
 
-	const DataPoints *cloud;
-
-	if(source == "reference")
-		cloud = &filteredReference;
-	else
-		cloud = &filteredReading;
-
-	ConstView desc(cloud->getDescriptorViewByName(descName));
-
-	if(desc.rows() != 1)
+	Matrix readingDesc;
+	if(filteredReading.descriptorExists(descName))
 	{
-		throw InvalidParameter(
-		(boost::format("GenericDescriptorOutlierFilter: Error, the parameter named 'descName' must be a 1D descriptor but the field %1% is %2%D") % descName % desc.rows()).str());
+		readingDesc = filteredReading.getDescriptorViewByName(descName);
+	}
+	else
+	{
+		readingDesc = Matrix::Zero(1, filteredReading.getNbPoints());
+	}
+	
+	Matrix referenceDesc;
+	if(filteredReference.descriptorExists(descName))
+	{
+		referenceDesc = filteredReference.getDescriptorViewByName(descName);
+	}
+	else
+	{
+		referenceDesc = Matrix::Zero(1, filteredReference.getNbPoints());
 	}
 
 	for(int k=0; k < knn; k++)
 	{
-		for(int i=0; i < readPtsCount; i++)
+		for(int idRead=0; idRead < readPtsCount; idRead++)
 		{
-			const int idRead = input.ids(k, i);
-			if (idRead == MatchersImpl<T>::NNS::InvalidIndex){
-				w(k,i) = 0;
+			const int idRef = input.ids(k, idRead);
+			if (idRef == MatchersImpl<T>::NNS::InvalidIndex){
+				w(k, idRead) = 0;
 				continue;
 			}
-			if(useSoftThreshold == false)
+			
+			const T value = readingDesc(0, idRead) + referenceDesc(0, idRef);
+			if(!useSoftThreshold)
 			{
-				if(useLargerThan == true)
+				if(useLargerThan)
 				{
-					if (desc(0, idRead) > threshold)
-						w(k,i) = 1;
+					if (value > threshold)
+						w(k, idRead) = 1;
 					else
-						w(k,i) = 0;
+						w(k, idRead) = 0;
 				}
 				else
 				{
-					if (desc(0, idRead) < threshold)
-						w(k,i) = 1;
+					if (value < threshold)
+						w(k, idRead) = 1;
 					else
-						w(k,i) = 0;
+						w(k, idRead) = 0;
 				}
 			}
 			else
 			{
 				// use soft threshold by assigning the weight using the descriptor
-				w(k,i) = desc(0, idRead);
+				w(k, idRead) = value;
 			}
 		}
 	}

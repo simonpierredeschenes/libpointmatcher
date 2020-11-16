@@ -84,11 +84,10 @@ namespace pointmatcher
 			.def_static("description", &GenericDescriptorOutlierFilter::description)
 			.def_static("availableParameters", &GenericDescriptorOutlierFilter::availableParameters)
 
-			.def_readonly("eps", &GenericDescriptorOutlierFilter::source)
-			.def_readonly("eps", &GenericDescriptorOutlierFilter::descName)
-			.def_readonly("eps", &GenericDescriptorOutlierFilter::useSoftThreshold)
-			.def_readonly("eps", &GenericDescriptorOutlierFilter::useLargerThan)
-			.def_readonly("warningPrinted", &GenericDescriptorOutlierFilter::threshold)
+			.def_readonly("descName", &GenericDescriptorOutlierFilter::descName)
+			.def_readonly("useSoftThreshold", &GenericDescriptorOutlierFilter::useSoftThreshold)
+			.def_readonly("useLargerThan", &GenericDescriptorOutlierFilter::useLargerThan)
+			.def_readonly("threshold", &GenericDescriptorOutlierFilter::threshold)
 
 			.def(py::init<const Parameters&>(), py::arg("params") = Parameters())
 			.def("compute", &GenericDescriptorOutlierFilter::compute, py::arg("filteredReading"), py::arg("filteredReference"), py::arg("input"));
