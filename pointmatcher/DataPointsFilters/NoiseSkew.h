@@ -29,7 +29,7 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	{
 		return {
 				{ "skewModel",                "Skew model used for weighting. Choices: 0=Model based on time only, 1=Model based on speed and acceleration noises, 2=Model based on speed and acceleration noises and on incidence angle, 3=Model based on \\cite{Al-Nuaimi2016}",
-																										   "0",    "0",    "2147483647",
+																										   "0",    "0",    "3",
 																																  &Parametrizable::Comp <
 																																  unsigned > },
 				{ "rangePrecision",           "Precision of range measurements",                           "0.02", "-inf", "inf", &Parametrizable::Comp < T > },

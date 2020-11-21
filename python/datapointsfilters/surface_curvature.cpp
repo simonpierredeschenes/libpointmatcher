@@ -15,6 +15,7 @@ namespace pointmatcher
 				.def_readonly("knn", &SurfaceCurvatureDataPointsFilter::knn)
 				.def_readonly("maxDist", &SurfaceCurvatureDataPointsFilter::maxDist)
 				.def_readonly("epsilon", &SurfaceCurvatureDataPointsFilter::epsilon)
+				.def_readonly("estimationMethod", &SurfaceCurvatureDataPointsFilter::estimationMethod)
 				
 				.def(py::init<const Parameters&>(), py::arg("params") = Parameters(), "Constructor, uses parameter interface")
 				

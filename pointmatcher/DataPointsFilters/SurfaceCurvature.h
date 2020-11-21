@@ -18,8 +18,8 @@ struct SurfaceCurvatureDataPointsFilter: public PointMatcher<T>::DataPointsFilte
 	
 	inline static const std::string description()
 	{
-		return "This filter extracts the surface curvature to each point using its nearest neighbors.\n\n"
-			   "Required descriptors: normals.\n"
+		return "This filter extracts the surface curvature to each point.\n\n"
+			   "Required descriptors: eigValues(if estimation method no. 0), normals (if estimation method no. 1).\n"
 			   "Produced descritors:  curvatures.\n"
 			   "Altered descriptors:  none.\n"
 			   "Altered features:     none.";
@@ -28,16 +28,22 @@ struct SurfaceCurvatureDataPointsFilter: public PointMatcher<T>::DataPointsFilte
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
-				{ "knn",     "Number of nearest neighbors to consider, including the point itself", "5",   "3", "2147483647",
-																													   &Parametrizable::Comp < unsigned > },
-				{ "maxDist", "Maximum distance to consider for neighbors",                          "inf", "0", "inf", &Parametrizable::Comp < T > },
-				{ "epsilon", "Approximation to use for the nearest-neighbor search",                "0",   "0", "inf", &Parametrizable::Comp < T > },
+				{ "knn",              "Number of nearest neighbors to consider, including the point itself",                  "5",   "3", "2147483647",
+																																				 &Parametrizable::Comp <
+																																				 unsigned > },
+				{ "maxDist",          "Maximum distance to consider for neighbors",                                           "inf", "0", "inf", &Parametrizable::Comp <
+																																				 T > },
+				{ "epsilon",          "Approximation to use for the nearest-neighbor search",                                 "0",   "0", "inf", &Parametrizable::Comp <
+																																				 T > },
+				{ "estimationMethod", "Method used for curvature estimation. 0=Eigen values ratio, 1=Normals rate of change", "0",   "0", "1",   &Parametrizable::Comp <
+																																				 unsigned > },
 		};
 	}
 	
 	const unsigned knn;
 	const T maxDist;
 	const T epsilon;
+	const unsigned estimationMethod;
 	
 	SurfaceCurvatureDataPointsFilter(const Parameters& params = Parameters());
 	
