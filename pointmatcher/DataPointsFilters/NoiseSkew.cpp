@@ -56,10 +56,18 @@ NoiseSkewDataPointsFilter<T>::NoiseSkewDataPointsFilter(const Parameters& params
 		PointMatcher<T>::DataPointsFilter("NoiseSkewDataPointsFilter", NoiseSkewDataPointsFilter::availableParameters(), params),
 		skewModel(Parametrizable::get<unsigned>("skewModel")),
 		rangePrecision(Parametrizable::get<T>("rangePrecision")),
-		linearSpeedNoise(Parametrizable::get<T>("linearSpeedNoise")),
-		linearAccelerationNoise(Parametrizable::get<T>("linearAccelerationNoise")),
-		angularSpeedNoise(Parametrizable::get<T>("angularSpeedNoise")),
-		angularAccelerationNoise(Parametrizable::get<T>("angularAccelerationNoise")),
+		linearSpeedNoiseX(Parametrizable::get<T>("linearSpeedNoiseX")),
+		linearSpeedNoiseY(Parametrizable::get<T>("linearSpeedNoiseY")),
+		linearSpeedNoiseZ(Parametrizable::get<T>("linearSpeedNoiseZ")),
+		linearAccelerationNoiseX(Parametrizable::get<T>("linearAccelerationNoiseX")),
+		linearAccelerationNoiseY(Parametrizable::get<T>("linearAccelerationNoiseY")),
+		linearAccelerationNoiseZ(Parametrizable::get<T>("linearAccelerationNoiseZ")),
+		angularSpeedNoiseX(Parametrizable::get<T>("angularSpeedNoiseX")),
+		angularSpeedNoiseY(Parametrizable::get<T>("angularSpeedNoiseY")),
+		angularSpeedNoiseZ(Parametrizable::get<T>("angularSpeedNoiseZ")),
+		angularAccelerationNoiseX(Parametrizable::get<T>("angularAccelerationNoiseX")),
+		angularAccelerationNoiseY(Parametrizable::get<T>("angularAccelerationNoiseY")),
+		angularAccelerationNoiseZ(Parametrizable::get<T>("angularAccelerationNoiseZ")),
 		cornerPointWeight(Parametrizable::get<T>("cornerPointWeight")),
 		weightQuantile(Parametrizable::get<T>("weightQuantile"))
 {
@@ -104,8 +112,20 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			Array points = cloud.features.topRows(cloud.getEuclideanDim());
 			Array firingDelays = (stamps.array() - stamps.minCoeff()).template cast<T>() / 1e9;
 			
-			Array linearVelocities = Array::Constant(points.rows(), points.cols(), linearSpeedNoise);
-			Array linearAccelerations = Array::Constant(points.rows(), points.cols(), linearAccelerationNoise);
+			Array linearVelocities = Array::Zero(points.rows(), points.cols());
+			linearVelocities.row(0) = Array::Constant(1, points.cols(), linearSpeedNoiseX);
+			linearVelocities.row(1) = Array::Constant(1, points.cols(), linearSpeedNoiseY);
+			if(cloud.getEuclideanDim() == 3)
+			{
+				linearVelocities.row(2) = Array::Constant(1, points.cols(), linearSpeedNoiseZ);
+			}
+			Array linearAccelerations = Array::Zero(points.rows(), points.cols());
+			linearAccelerations.row(0) = Array::Constant(1, points.cols(), linearAccelerationNoiseX);
+			linearAccelerations.row(1) = Array::Constant(1, points.cols(), linearAccelerationNoiseY);
+			if(cloud.getEuclideanDim() == 3)
+			{
+				linearAccelerations.row(2) = Array::Constant(1, points.cols(), linearAccelerationNoiseZ);
+			}
 			Array backwardTranslations = (-linearVelocities).rowwise() * firingDelays.row(0) -
 										 linearAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
 			Array forwardTranslations = linearVelocities.rowwise() * firingDelays.row(0) +
@@ -115,8 +135,8 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			Array forwardRotatedPoints = Array::Zero(points.rows(), points.cols());
 			if(cloud.getEuclideanDim() == 2)
 			{
-				Array angularVelocities = Array::Constant(1, points.cols(), angularSpeedNoise);
-				Array angularAccelerations = Array::Constant(1, points.cols(), angularAccelerationNoise);
+				Array angularVelocities = Array::Constant(1, points.cols(), angularSpeedNoiseZ);
+				Array angularAccelerations = Array::Constant(1, points.cols(), angularAccelerationNoiseZ);
 				Array rotations = angularVelocities * firingDelays + angularAccelerations * 0.5 * firingDelays.pow(2);
 				Array rotationMatrix11 = rotations.cos();
 				Array rotationMatrix12 = -rotations.sin();
@@ -129,8 +149,14 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			}
 			else
 			{
-				Array angularVelocities = Array::Constant(3, points.cols(), angularSpeedNoise);
-				Array angularAccelerations = Array::Constant(3, points.cols(), angularAccelerationNoise);
+				Array angularVelocities = Array::Zero(3, points.cols());
+				angularVelocities.row(0) = Array::Constant(1, points.cols(), angularSpeedNoiseX);
+				angularVelocities.row(1) = Array::Constant(1, points.cols(), angularSpeedNoiseY);
+				angularVelocities.row(2) = Array::Constant(1, points.cols(), angularSpeedNoiseZ);
+				Array angularAccelerations = Array::Zero(3, points.cols());
+				angularAccelerations.row(0) = Array::Constant(1, points.cols(), angularAccelerationNoiseX);
+				angularAccelerations.row(1) = Array::Constant(1, points.cols(), angularAccelerationNoiseY);
+				angularAccelerations.row(2) = Array::Constant(1, points.cols(), angularAccelerationNoiseZ);
 				Array rotations = angularVelocities.rowwise() * firingDelays.row(0) +
 								  angularAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
 				// https://math.stackexchange.com/questions/1874898/simultaneous-action-of-two-quaternions
@@ -236,8 +262,20 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				Array laserDirections = points.rowwise() / points.pow(2).colwise().sum().sqrt();
 				Array firingDelays = (stamps.colwise() - stamps.col(0)).template cast<T>() / 1e9;
 				
-				Array linearVelocities = Array::Constant(points.rows(), points.cols(), linearSpeedNoise);
-				Array linearAccelerations = Array::Constant(points.rows(), points.cols(), linearAccelerationNoise);
+				Array linearVelocities = Array::Zero(points.rows(), points.cols());
+				linearVelocities.row(0) = Array::Constant(1, points.cols(), linearSpeedNoiseX);
+				linearVelocities.row(1) = Array::Constant(1, points.cols(), linearSpeedNoiseY);
+				if(ring.getEuclideanDim() == 3)
+				{
+					linearVelocities.row(2) = Array::Constant(1, points.cols(), linearSpeedNoiseZ);
+				}
+				Array linearAccelerations = Array::Zero(points.rows(), points.cols());
+				linearAccelerations.row(0) = Array::Constant(1, points.cols(), linearAccelerationNoiseX);
+				linearAccelerations.row(1) = Array::Constant(1, points.cols(), linearAccelerationNoiseY);
+				if(ring.getEuclideanDim() == 3)
+				{
+					linearAccelerations.row(2) = Array::Constant(1, points.cols(), linearAccelerationNoiseZ);
+				}
 				Array backwardTranslations = (-linearVelocities).rowwise() * firingDelays.row(0) -
 											 linearAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
 				Array forwardTranslations = linearVelocities.rowwise() * firingDelays.row(0) +
@@ -253,8 +291,8 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				Array forwardRotatedPoints = Array::Zero(points.rows(), points.cols());
 				if(ring.getEuclideanDim() == 2)
 				{
-					Array angularVelocities = Array::Constant(1, points.cols(), angularSpeedNoise);
-					Array angularAccelerations = Array::Constant(1, points.cols(), angularAccelerationNoise);
+					Array angularVelocities = Array::Constant(1, points.cols(), angularSpeedNoiseZ);
+					Array angularAccelerations = Array::Constant(1, points.cols(), angularAccelerationNoiseZ);
 					Array rotations = angularVelocities * firingDelays + angularAccelerations * 0.5 * firingDelays.pow(2);
 					Array rotationMatrix11 = rotations.cos();
 					Array rotationMatrix12 = -rotations.sin();
@@ -279,8 +317,14 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				}
 				else
 				{
-					Array angularVelocities = Array::Constant(3, points.cols(), angularSpeedNoise);
-					Array angularAccelerations = Array::Constant(3, points.cols(), angularAccelerationNoise);
+					Array angularVelocities = Array::Zero(3, points.cols());
+					angularVelocities.row(0) = Array::Constant(1, points.cols(), angularSpeedNoiseX);
+					angularVelocities.row(1) = Array::Constant(1, points.cols(), angularSpeedNoiseY);
+					angularVelocities.row(2) = Array::Constant(1, points.cols(), angularSpeedNoiseZ);
+					Array angularAccelerations = Array::Zero(3, points.cols());
+					angularAccelerations.row(0) = Array::Constant(1, points.cols(), angularAccelerationNoiseX);
+					angularAccelerations.row(1) = Array::Constant(1, points.cols(), angularAccelerationNoiseY);
+					angularAccelerations.row(2) = Array::Constant(1, points.cols(), angularAccelerationNoiseZ);
 					Array rotations = angularVelocities.rowwise() * firingDelays.row(0) +
 									  angularAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
 					// https://math.stackexchange.com/questions/1874898/simultaneous-action-of-two-quaternions
