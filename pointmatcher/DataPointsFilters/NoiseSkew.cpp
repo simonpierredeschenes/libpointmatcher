@@ -1,5 +1,6 @@
 #include "NoiseSkew.h"
 #include <numeric>
+#include <boost/lexical_cast.hpp>
 
 template<typename Func>
 struct lambda_as_visitor_wrapper: Func
@@ -21,6 +22,30 @@ void visit_lambda(const Mat& m, const Func& f)
 {
 	lambda_as_visitor_wrapper<Func> visitor(f);
 	m.visit(visitor);
+}
+
+template<typename T>
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToArray(const std::string& values)
+{
+	size_t lastPos = 0;
+	size_t pos;
+	std::vector<T> vector;
+	while((pos = values.find(',', lastPos)) != std::string::npos)
+	{
+		vector.push_back(boost::lexical_cast<T>(values.substr(lastPos, pos - lastPos)));
+		lastPos = pos + 1;
+	}
+	if(!values.empty())
+	{
+		vector.push_back(boost::lexical_cast<T>(values.substr(lastPos)));
+	}
+	
+	Array array = Array::Zero(1, vector.size());
+	for(int i = 0; i < vector.size(); i++)
+	{
+		array(0, i) = vector[i];
+	}
+	return array;
 }
 
 // https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
@@ -52,22 +77,91 @@ void NoiseSkewDataPointsFilter<T>::applyOrdering(const std::vector<int>& orderin
 }
 
 template<typename T>
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::computeTranslations(const Array& linearSpeeds, const Array& linearAccelerations,
+																							   const Array& times, const Array& firingDelays)
+{
+	int timeIndex = 0;
+	T currentLinearSpeed = linearSpeeds(0, 0);
+	T currentLinearAcceleration = linearAccelerations(0, 0);
+	Array positions = Array::Zero(1, firingDelays.cols());
+	for(int i = 1; i < firingDelays.cols(); i++)
+	{
+		if(timeIndex + 1 < times.cols() && times(0, timeIndex + 1) <= firingDelays(0, i))
+		{
+			timeIndex++;
+			
+			T dt1 = times(0, timeIndex) - firingDelays(0, i - 1);
+			positions(0, i) = positions(0, i - 1) + (currentLinearSpeed * dt1) + (0.5 * currentLinearAcceleration * std::pow(dt1, 2));
+			
+			currentLinearSpeed = linearSpeeds(0, timeIndex);
+			currentLinearAcceleration = linearAccelerations(0, timeIndex);
+			
+			T dt2 = firingDelays(0, i) - times(0, timeIndex);
+			positions(0, i) += (currentLinearSpeed * dt2) + (0.5 * currentLinearAcceleration * std::pow(dt2, 2));
+			currentLinearSpeed += currentLinearAcceleration * dt2;
+		}
+		else
+		{
+			T dt = firingDelays(0, i) - firingDelays(0, i - 1);
+			positions(0, i) = positions(0, i - 1) + (currentLinearSpeed * dt) + (0.5 * currentLinearAcceleration * std::pow(dt, 2));
+			currentLinearSpeed += currentLinearAcceleration * dt;
+		}
+	}
+	return positions;
+}
+
+template<typename T>
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::computeRotations(const Array& angularSpeeds, const Array& angularAccelerations,
+																							const Array& times, const Array& firingDelays)
+{
+	int timeIndex = 0;
+	T currentAngularSpeed = angularSpeeds(0, 0);
+	T currentAngularAcceleration = angularAccelerations(0, 0);
+	Array orientations = Array::Zero(1, firingDelays.cols());
+	for(int i = 1; i < firingDelays.cols(); i++)
+	{
+		if(timeIndex + 1 < times.cols() && times(0, timeIndex + 1) <= firingDelays(0, i))
+		{
+			timeIndex++;
+			
+			T dt1 = times(0, timeIndex) - firingDelays(0, i - 1);
+			orientations(0, i) = orientations(0, i - 1) + (currentAngularSpeed * dt1) + (0.5 * currentAngularAcceleration * std::pow(dt1, 2));
+			
+			currentAngularSpeed = angularSpeeds(0, timeIndex);
+			currentAngularAcceleration = angularAccelerations(0, timeIndex);
+			
+			T dt2 = firingDelays(0, i) - times(0, timeIndex);
+			orientations(0, i) += (currentAngularSpeed * dt2) + (0.5 * currentAngularAcceleration * std::pow(dt2, 2));
+			currentAngularSpeed += currentAngularAcceleration * dt2;
+		}
+		else
+		{
+			T dt = firingDelays(0, i) - firingDelays(0, i - 1);
+			orientations(0, i) = orientations(0, i - 1) + (currentAngularSpeed * dt) + (0.5 * currentAngularAcceleration * std::pow(dt, 2));
+			currentAngularSpeed += currentAngularAcceleration * dt;
+		}
+	}
+	return orientations;
+}
+
+template<typename T>
 NoiseSkewDataPointsFilter<T>::NoiseSkewDataPointsFilter(const Parameters& params):
 		PointMatcher<T>::DataPointsFilter("NoiseSkewDataPointsFilter", NoiseSkewDataPointsFilter::availableParameters(), params),
 		skewModel(Parametrizable::get<unsigned>("skewModel")),
 		rangePrecision(Parametrizable::get<T>("rangePrecision")),
-		linearSpeedNoiseX(Parametrizable::get<T>("linearSpeedNoiseX")),
-		linearSpeedNoiseY(Parametrizable::get<T>("linearSpeedNoiseY")),
-		linearSpeedNoiseZ(Parametrizable::get<T>("linearSpeedNoiseZ")),
-		linearAccelerationNoiseX(Parametrizable::get<T>("linearAccelerationNoiseX")),
-		linearAccelerationNoiseY(Parametrizable::get<T>("linearAccelerationNoiseY")),
-		linearAccelerationNoiseZ(Parametrizable::get<T>("linearAccelerationNoiseZ")),
-		angularSpeedNoiseX(Parametrizable::get<T>("angularSpeedNoiseX")),
-		angularSpeedNoiseY(Parametrizable::get<T>("angularSpeedNoiseY")),
-		angularSpeedNoiseZ(Parametrizable::get<T>("angularSpeedNoiseZ")),
-		angularAccelerationNoiseX(Parametrizable::get<T>("angularAccelerationNoiseX")),
-		angularAccelerationNoiseY(Parametrizable::get<T>("angularAccelerationNoiseY")),
-		angularAccelerationNoiseZ(Parametrizable::get<T>("angularAccelerationNoiseZ")),
+		linearSpeedNoisesX(castToArray(Parametrizable::getParamValueString("linearSpeedNoisesX"))),
+		linearSpeedNoisesY(castToArray(Parametrizable::getParamValueString("linearSpeedNoisesY"))),
+		linearSpeedNoisesZ(castToArray(Parametrizable::getParamValueString("linearSpeedNoisesZ"))),
+		linearAccelerationNoisesX(castToArray(Parametrizable::getParamValueString("linearAccelerationNoisesX"))),
+		linearAccelerationNoisesY(castToArray(Parametrizable::getParamValueString("linearAccelerationNoisesY"))),
+		linearAccelerationNoisesZ(castToArray(Parametrizable::getParamValueString("linearAccelerationNoisesZ"))),
+		angularSpeedNoisesX(castToArray(Parametrizable::getParamValueString("angularSpeedNoisesX"))),
+		angularSpeedNoisesY(castToArray(Parametrizable::getParamValueString("angularSpeedNoisesY"))),
+		angularSpeedNoisesZ(castToArray(Parametrizable::getParamValueString("angularSpeedNoisesZ"))),
+		angularAccelerationNoisesX(castToArray(Parametrizable::getParamValueString("angularAccelerationNoisesX"))),
+		angularAccelerationNoisesY(castToArray(Parametrizable::getParamValueString("angularAccelerationNoisesY"))),
+		angularAccelerationNoisesZ(castToArray(Parametrizable::getParamValueString("angularAccelerationNoisesZ"))),
+		measureTimes(castToArray(Parametrizable::getParamValueString("measureTimes"))),
 		cornerPointWeight(Parametrizable::get<T>("cornerPointWeight")),
 		weightQuantile(Parametrizable::get<T>("weightQuantile"))
 {
@@ -106,38 +200,39 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find simple sensor noise in descriptors.");
 			}
 			
-			const auto& stamps = cloud.getTimeViewByName("stamps");
-			const auto& simpleSensorNoise = cloud.getDescriptorViewByName("simpleSensorNoise");
+			Eigen::Array<int, 1, Eigen::Dynamic> idTable = Eigen::Array<int, 1, Eigen::Dynamic>::LinSpaced(cloud.getNbPoints(), 0, cloud.getNbPoints() - 1);
+			typename PM::DataPoints orderedDataPoints = cloud;
 			
-			Array points = cloud.features.topRows(cloud.getEuclideanDim());
-			Array firingDelays = (stamps.array() - stamps.minCoeff()).template cast<T>() / 1e9;
+			const auto& stamps = orderedDataPoints.getTimeViewByName("stamps");
+			const auto& simpleSensorNoise = orderedDataPoints.getDescriptorViewByName("simpleSensorNoise");
 			
-			Array linearVelocities = Array::Zero(points.rows(), points.cols());
-			linearVelocities.row(0) = Array::Constant(1, points.cols(), linearSpeedNoiseX);
-			linearVelocities.row(1) = Array::Constant(1, points.cols(), linearSpeedNoiseY);
-			if(cloud.getEuclideanDim() == 3)
+			std::vector<int> stampOrdering = computeOrdering<std::int64_t>(stamps);
+			applyOrdering(stampOrdering, idTable, orderedDataPoints);
+			
+			Array points = orderedDataPoints.features.topRows(orderedDataPoints.getEuclideanDim());
+			Array firingDelays = (stamps.colwise() - stamps.col(0)).template cast<T>() / 1e9;
+			
+			Array backwardTranslations = Array::Zero(points.rows(), points.cols());
+			backwardTranslations.row(0) = computeTranslations(-linearSpeedNoisesX, -linearAccelerationNoisesX, measureTimes, firingDelays);
+			backwardTranslations.row(1) = computeTranslations(-linearSpeedNoisesY, -linearAccelerationNoisesY, measureTimes, firingDelays);
+			if(orderedDataPoints.getEuclideanDim() == 3)
 			{
-				linearVelocities.row(2) = Array::Constant(1, points.cols(), linearSpeedNoiseZ);
+				backwardTranslations.row(2) = computeTranslations(-linearSpeedNoisesZ, -linearAccelerationNoisesZ, measureTimes, firingDelays);
 			}
-			Array linearAccelerations = Array::Zero(points.rows(), points.cols());
-			linearAccelerations.row(0) = Array::Constant(1, points.cols(), linearAccelerationNoiseX);
-			linearAccelerations.row(1) = Array::Constant(1, points.cols(), linearAccelerationNoiseY);
-			if(cloud.getEuclideanDim() == 3)
+			
+			Array forwardTranslations = Array::Zero(points.rows(), points.cols());
+			forwardTranslations.row(0) = computeTranslations(linearSpeedNoisesX, linearAccelerationNoisesX, measureTimes, firingDelays);
+			forwardTranslations.row(1) = computeTranslations(linearSpeedNoisesY, linearAccelerationNoisesY, measureTimes, firingDelays);
+			if(orderedDataPoints.getEuclideanDim() == 3)
 			{
-				linearAccelerations.row(2) = Array::Constant(1, points.cols(), linearAccelerationNoiseZ);
+				forwardTranslations.row(2) = computeTranslations(linearSpeedNoisesZ, linearAccelerationNoisesZ, measureTimes, firingDelays);
 			}
-			Array backwardTranslations = (-linearVelocities).rowwise() * firingDelays.row(0) -
-										 linearAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
-			Array forwardTranslations = linearVelocities.rowwise() * firingDelays.row(0) +
-										linearAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
 			
 			Array backwardRotatedPoints = Array::Zero(points.rows(), points.cols());
 			Array forwardRotatedPoints = Array::Zero(points.rows(), points.cols());
-			if(cloud.getEuclideanDim() == 2)
+			if(orderedDataPoints.getEuclideanDim() == 2)
 			{
-				Array angularVelocities = Array::Constant(1, points.cols(), angularSpeedNoiseZ);
-				Array angularAccelerations = Array::Constant(1, points.cols(), angularAccelerationNoiseZ);
-				Array rotations = angularVelocities * firingDelays + angularAccelerations * 0.5 * firingDelays.pow(2);
+				Array rotations = computeRotations(angularSpeedNoisesZ, angularAccelerationNoisesZ, measureTimes, firingDelays);
 				Array rotationMatrix11 = rotations.cos();
 				Array rotationMatrix12 = -rotations.sin();
 				Array rotationMatrix21 = rotations.sin();
@@ -149,16 +244,10 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			}
 			else
 			{
-				Array angularVelocities = Array::Zero(3, points.cols());
-				angularVelocities.row(0) = Array::Constant(1, points.cols(), angularSpeedNoiseX);
-				angularVelocities.row(1) = Array::Constant(1, points.cols(), angularSpeedNoiseY);
-				angularVelocities.row(2) = Array::Constant(1, points.cols(), angularSpeedNoiseZ);
-				Array angularAccelerations = Array::Zero(3, points.cols());
-				angularAccelerations.row(0) = Array::Constant(1, points.cols(), angularAccelerationNoiseX);
-				angularAccelerations.row(1) = Array::Constant(1, points.cols(), angularAccelerationNoiseY);
-				angularAccelerations.row(2) = Array::Constant(1, points.cols(), angularAccelerationNoiseZ);
-				Array rotations = angularVelocities.rowwise() * firingDelays.row(0) +
-								  angularAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
+				Array rotations = Array::Zero(3, points.cols());
+				rotations.row(0) = computeRotations(angularSpeedNoisesX, angularAccelerationNoisesX, measureTimes, firingDelays);
+				rotations.row(1) = computeRotations(angularSpeedNoisesY, angularAccelerationNoisesY, measureTimes, firingDelays);
+				rotations.row(2) = computeRotations(angularSpeedNoisesZ, angularAccelerationNoisesZ, measureTimes, firingDelays);
 				// https://math.stackexchange.com/questions/1874898/simultaneous-action-of-two-quaternions
 				Array angles = rotations.pow(2).colwise().sum().sqrt();
 				Array axes = rotations.rowwise() / angles.row(0);
@@ -199,7 +288,9 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			allPossibleErrors.row(5) = (ftbrCorrectedPoints - ftfrCorrectedPoints).pow(2).colwise().sum().sqrt() / 2.0;
 			
 			Array estimatedErrors = allPossibleErrors.colwise().maxCoeff();
-			weights = 1.0 / (estimatedErrors + simpleSensorNoise.array()).pow(2);
+			Array dataPointsWeights = 1.0 / (estimatedErrors + simpleSensorNoise.array()).pow(1);
+			
+			visit_lambda(dataPointsWeights, [&weights, &idTable](T value, int i, int j){ weights(0, idTable(i, j)) = value; });
 			break;
 		}
 		case 2:
@@ -262,24 +353,21 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				Array laserDirections = points.rowwise() / points.pow(2).colwise().sum().sqrt();
 				Array firingDelays = (stamps.colwise() - stamps.col(0)).template cast<T>() / 1e9;
 				
-				Array linearVelocities = Array::Zero(points.rows(), points.cols());
-				linearVelocities.row(0) = Array::Constant(1, points.cols(), linearSpeedNoiseX);
-				linearVelocities.row(1) = Array::Constant(1, points.cols(), linearSpeedNoiseY);
+				Array backwardTranslations = Array::Zero(points.rows(), points.cols());
+				backwardTranslations.row(0) = computeTranslations(-linearSpeedNoisesX, -linearAccelerationNoisesX, measureTimes, firingDelays);
+				backwardTranslations.row(1) = computeTranslations(-linearSpeedNoisesY, -linearAccelerationNoisesY, measureTimes, firingDelays);
 				if(ring.getEuclideanDim() == 3)
 				{
-					linearVelocities.row(2) = Array::Constant(1, points.cols(), linearSpeedNoiseZ);
+					backwardTranslations.row(2) = computeTranslations(-linearSpeedNoisesZ, -linearAccelerationNoisesZ, measureTimes, firingDelays);
 				}
-				Array linearAccelerations = Array::Zero(points.rows(), points.cols());
-				linearAccelerations.row(0) = Array::Constant(1, points.cols(), linearAccelerationNoiseX);
-				linearAccelerations.row(1) = Array::Constant(1, points.cols(), linearAccelerationNoiseY);
+				
+				Array forwardTranslations = Array::Zero(points.rows(), points.cols());
+				forwardTranslations.row(0) = computeTranslations(linearSpeedNoisesX, linearAccelerationNoisesX, measureTimes, firingDelays);
+				forwardTranslations.row(1) = computeTranslations(linearSpeedNoisesY, linearAccelerationNoisesY, measureTimes, firingDelays);
 				if(ring.getEuclideanDim() == 3)
 				{
-					linearAccelerations.row(2) = Array::Constant(1, points.cols(), linearAccelerationNoiseZ);
+					forwardTranslations.row(2) = computeTranslations(linearSpeedNoisesZ, linearAccelerationNoisesZ, measureTimes, firingDelays);
 				}
-				Array backwardTranslations = (-linearVelocities).rowwise() * firingDelays.row(0) -
-											 linearAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
-				Array forwardTranslations = linearVelocities.rowwise() * firingDelays.row(0) +
-											linearAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
 				
 				Array btbrRightPositions = Array::Zero(points.rows(), points.cols());
 				Array btfrRightPositions = Array::Zero(points.rows(), points.cols());
@@ -291,9 +379,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				Array forwardRotatedPoints = Array::Zero(points.rows(), points.cols());
 				if(ring.getEuclideanDim() == 2)
 				{
-					Array angularVelocities = Array::Constant(1, points.cols(), angularSpeedNoiseZ);
-					Array angularAccelerations = Array::Constant(1, points.cols(), angularAccelerationNoiseZ);
-					Array rotations = angularVelocities * firingDelays + angularAccelerations * 0.5 * firingDelays.pow(2);
+					Array rotations = computeRotations(angularSpeedNoisesZ, angularAccelerationNoisesZ, measureTimes, firingDelays);
 					Array rotationMatrix11 = rotations.cos();
 					Array rotationMatrix12 = -rotations.sin();
 					Array rotationMatrix21 = rotations.sin();
@@ -317,16 +403,10 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				}
 				else
 				{
-					Array angularVelocities = Array::Zero(3, points.cols());
-					angularVelocities.row(0) = Array::Constant(1, points.cols(), angularSpeedNoiseX);
-					angularVelocities.row(1) = Array::Constant(1, points.cols(), angularSpeedNoiseY);
-					angularVelocities.row(2) = Array::Constant(1, points.cols(), angularSpeedNoiseZ);
-					Array angularAccelerations = Array::Zero(3, points.cols());
-					angularAccelerations.row(0) = Array::Constant(1, points.cols(), angularAccelerationNoiseX);
-					angularAccelerations.row(1) = Array::Constant(1, points.cols(), angularAccelerationNoiseY);
-					angularAccelerations.row(2) = Array::Constant(1, points.cols(), angularAccelerationNoiseZ);
-					Array rotations = angularVelocities.rowwise() * firingDelays.row(0) +
-									  angularAccelerations.rowwise() * (0.5 * firingDelays.pow(2)).row(0);
+					Array rotations = Array::Zero(3, points.cols());
+					rotations.row(0) = computeRotations(angularSpeedNoisesX, angularAccelerationNoisesX, measureTimes, firingDelays);
+					rotations.row(1) = computeRotations(angularSpeedNoisesY, angularAccelerationNoisesY, measureTimes, firingDelays);
+					rotations.row(2) = computeRotations(angularSpeedNoisesZ, angularAccelerationNoisesZ, measureTimes, firingDelays);
 					// https://math.stackexchange.com/questions/1874898/simultaneous-action-of-two-quaternions
 					Array angles = rotations.pow(2).colwise().sum().sqrt();
 					Array axes = rotations.rowwise() / angles.row(0);
@@ -438,7 +518,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				allPossibleErrors.row(5) = (ftbrRightDistances - ftfrRightDistances).abs() / 2.0;
 				
 				Array estimatedErrors = allPossibleErrors.colwise().maxCoeff();
-				Array ringWeights = 1.0 / (estimatedErrors + rangePrecision).pow(2);
+				Array ringWeights = 1.0 / (estimatedErrors + rangePrecision).pow(1);
 				
 				Array cornerness = Array::Zero(estimatedErrors.rows(), estimatedErrors.cols());
 				cornerness.block(0, 1, 1, cornerness.cols() - 1) = (estimatedErrors.block(0, 1, 1, estimatedErrors.cols() - 1) -
