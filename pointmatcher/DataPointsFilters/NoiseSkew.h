@@ -34,18 +34,18 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 																																						  unsigned > },
 				{ "rangePrecision",             "Precision of range measurements",                                                 "0.02", "-inf", "inf", &Parametrizable::Comp <
 																																						  T > },
-				{ "linearSpeedNoisesX",         "Comma-separated noises on linear speed along the X axis during the scan",         "0" },
-				{ "linearSpeedNoisesY",         "Comma-separated noises on linear speed along the Y axis during the scan",         "0" },
-				{ "linearSpeedNoisesZ",         "Comma-separated noises on linear speed along the Z axis during the scan",         "0" },
-				{ "linearAccelerationNoisesX",  "Comma-separated noises on linear acceleration along the X axis during the scan",  "0" },
-				{ "linearAccelerationNoisesY",  "Comma-separated noises on linear acceleration along the Y axis during the scan",  "0" },
-				{ "linearAccelerationNoisesZ",  "Comma-separated noises on linear acceleration along the Z axis during the scan",  "0" },
-				{ "angularSpeedNoisesX",        "Comma-separated noises on angular speed along the X axis during the scan",        "0" },
-				{ "angularSpeedNoisesY",        "Comma-separated noises on angular speed along the Y axis during the scan",        "0" },
-				{ "angularSpeedNoisesZ",        "Comma-separated noises on angular speed along the Z axis during the scan",        "0" },
-				{ "angularAccelerationNoisesX", "Comma-separated noises on angular acceleration along the X axis during the scan", "0" },
-				{ "angularAccelerationNoisesY", "Comma-separated noises on angular acceleration along the Y axis during the scan", "0" },
-				{ "angularAccelerationNoisesZ", "Comma-separated noises on angular acceleration along the Z axis during the scan", "0" },
+				{ "linearSpeedsX",              "Comma-separated linear speeds along the X axis during the scan",         "0" },
+				{ "linearSpeedsY",              "Comma-separated linear speeds along the Y axis during the scan",         "0" },
+				{ "linearSpeedsZ",              "Comma-separated linear speeds along the Z axis during the scan",         "0" },
+				{ "linearAccelerationsX",       "Comma-separated linear accelerations along the X axis during the scan",  "0" },
+				{ "linearAccelerationsY",       "Comma-separated linear accelerations along the Y axis during the scan",  "0" },
+				{ "linearAccelerationsZ",       "Comma-separated linear accelerations along the Z axis during the scan",  "0" },
+				{ "angularSpeedsX",             "Comma-separated angular speeds along the X axis during the scan",        "0" },
+				{ "angularSpeedsY",             "Comma-separated angular speeds along the Y axis during the scan",        "0" },
+				{ "angularSpeedsZ",             "Comma-separated angular speeds along the Z axis during the scan",        "0" },
+				{ "angularAccelerationsX",      "Comma-separated angular accelerations along the X axis during the scan", "0" },
+				{ "angularAccelerationsY",      "Comma-separated angular accelerations along the Y axis during the scan", "0" },
+				{ "angularAccelerationsZ",      "Comma-separated angular accelerations along the Z axis during the scan", "0" },
 				{ "measureTimes",               "Times at which inertial measurements were acquired",                              "0" },
 				{ "cornerPointWeight",          "Weight to give to points at junction of multiple surfaces",                       "1",    "-inf", "inf", &Parametrizable::Comp <
 																																						  T > },
@@ -79,6 +79,10 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	const T weightQuantile;
 
 private:
+	Array castToLinearSpeedNoises(const std::string& values);
+	Array castToLinearAccelerationNoises(const std::string& values);
+	Array castToAngularSpeedNoises(const std::string& values);
+	Array castToAngularAccelerationNoises(const std::string& values);
 	Array castToArray(const std::string& values);
 	
 	template<typename U>

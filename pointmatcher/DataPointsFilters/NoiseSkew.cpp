@@ -25,6 +25,30 @@ void visit_lambda(const Mat& m, const Func& f)
 }
 
 template<typename T>
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToLinearSpeedNoises(const std::string& values)
+{
+	return ((castToArray(values).abs() + 0.001).log() / 65.0) + 0.107;
+}
+
+template<typename T>
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToLinearAccelerationNoises(const std::string& values)
+{
+	return castToArray(values).abs() * 0.0;
+}
+
+template<typename T>
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToAngularSpeedNoises(const std::string& values)
+{
+	return (castToArray(values).abs()/65.0).pow(2);
+}
+
+template<typename T>
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToAngularAccelerationNoises(const std::string& values)
+{
+	return castToArray(values).abs() * 0.0;
+}
+
+template<typename T>
 typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToArray(const std::string& values)
 {
 	size_t lastPos = 0;
@@ -149,18 +173,18 @@ NoiseSkewDataPointsFilter<T>::NoiseSkewDataPointsFilter(const Parameters& params
 		PointMatcher<T>::DataPointsFilter("NoiseSkewDataPointsFilter", NoiseSkewDataPointsFilter::availableParameters(), params),
 		skewModel(Parametrizable::get<unsigned>("skewModel")),
 		rangePrecision(Parametrizable::get<T>("rangePrecision")),
-		linearSpeedNoisesX(castToArray(Parametrizable::getParamValueString("linearSpeedNoisesX"))),
-		linearSpeedNoisesY(castToArray(Parametrizable::getParamValueString("linearSpeedNoisesY"))),
-		linearSpeedNoisesZ(castToArray(Parametrizable::getParamValueString("linearSpeedNoisesZ"))),
-		linearAccelerationNoisesX(castToArray(Parametrizable::getParamValueString("linearAccelerationNoisesX"))),
-		linearAccelerationNoisesY(castToArray(Parametrizable::getParamValueString("linearAccelerationNoisesY"))),
-		linearAccelerationNoisesZ(castToArray(Parametrizable::getParamValueString("linearAccelerationNoisesZ"))),
-		angularSpeedNoisesX(castToArray(Parametrizable::getParamValueString("angularSpeedNoisesX"))),
-		angularSpeedNoisesY(castToArray(Parametrizable::getParamValueString("angularSpeedNoisesY"))),
-		angularSpeedNoisesZ(castToArray(Parametrizable::getParamValueString("angularSpeedNoisesZ"))),
-		angularAccelerationNoisesX(castToArray(Parametrizable::getParamValueString("angularAccelerationNoisesX"))),
-		angularAccelerationNoisesY(castToArray(Parametrizable::getParamValueString("angularAccelerationNoisesY"))),
-		angularAccelerationNoisesZ(castToArray(Parametrizable::getParamValueString("angularAccelerationNoisesZ"))),
+		linearSpeedNoisesX(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsX"))),
+		linearSpeedNoisesY(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsY"))),
+		linearSpeedNoisesZ(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsZ"))),
+		linearAccelerationNoisesX(castToLinearAccelerationNoises(Parametrizable::getParamValueString("linearAccelerationsX"))),
+		linearAccelerationNoisesY(castToLinearAccelerationNoises(Parametrizable::getParamValueString("linearAccelerationsY"))),
+		linearAccelerationNoisesZ(castToLinearAccelerationNoises(Parametrizable::getParamValueString("linearAccelerationsZ"))),
+		angularSpeedNoisesX(castToAngularSpeedNoises(Parametrizable::getParamValueString("angularSpeedsX"))),
+		angularSpeedNoisesY(castToAngularSpeedNoises(Parametrizable::getParamValueString("angularSpeedsY"))),
+		angularSpeedNoisesZ(castToAngularSpeedNoises(Parametrizable::getParamValueString("angularSpeedsZ"))),
+		angularAccelerationNoisesX(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsX"))),
+		angularAccelerationNoisesY(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsY"))),
+		angularAccelerationNoisesZ(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsZ"))),
 		measureTimes(castToArray(Parametrizable::getParamValueString("measureTimes"))),
 		cornerPointWeight(Parametrizable::get<T>("cornerPointWeight")),
 		weightQuantile(Parametrizable::get<T>("weightQuantile"))
