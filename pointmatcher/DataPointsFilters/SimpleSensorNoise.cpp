@@ -55,7 +55,8 @@ SimpleSensorNoiseDataPointsFilter<T>::SimpleSensorNoiseDataPointsFilter(const Pa
 											"Hokuyo UTM-30LX",
 											"Kinect / Xtion",
 											"Sick Tim3xx",
-											"Ouster OS1-Gen1"};
+											"Ouster OS1-Gen1",
+											"Robosense RS-16"};
 	if (sensorType >= sensorNames.size())
 	{
 		throw InvalidParameter(
@@ -116,6 +117,11 @@ void SimpleSensorNoiseDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 	case 5: // Ouster OS1-Gen1
 	{
 		noise = computeLaserNoise(0.025, 0.0011, 0.0, cloud.features);
+		break;
+	}
+	case 6: // Robosense RS-16
+	{
+		noise = computeLaserNoise(0.02, 0.0037, 0.0, cloud.features);
 		break;
 	}
 	default:
