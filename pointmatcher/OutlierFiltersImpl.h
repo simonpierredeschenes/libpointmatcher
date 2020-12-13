@@ -275,6 +275,27 @@ struct OutlierFiltersImpl
 		virtual OutlierWeights robustFiltering(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
 	};
 
+	struct UncertaintyOutlierFilter: public OutlierFilter
+        {
+                inline static const std::string description()
+                {
+                        return "This filter weights matched points based on skewUncertainty and simpleSensorNoise descriptors of either one or both point clouds.";
+                }
+		inline static const ParametersDoc availableParameters()
+                {
+                        return {
+                                { "useSoftThreshold", "If set to 1 (true), uses the inverse of the computed uncertainty as a weight. If set to 0 (false), uses the parameter 'threshold' to set binary weights.", "0", "0", "1", P::Comp<bool>},
+                                { "threshold", "Uncertainty threshold used to determine the binary weights", "0.03", "0.0000001", "inf", &P::Comp<T>}
+                        };
+                }
+
+                const bool useSoftThreshold;
+                const T threshold;
+
+                UncertaintyOutlierFilter(const Parameters& params = Parameters());
+                virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
+        };
+
 }; // OutlierFiltersImpl
 
 #endif // __POINTMATCHER_OUTLIERFILTERS_H

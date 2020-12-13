@@ -599,3 +599,86 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 
 template struct OutlierFiltersImpl<float>::RobustOutlierFilter;
 template struct OutlierFiltersImpl<double>::RobustOutlierFilter;
+
+// UncertaintyOutlierFilter
+template<typename T>
+OutlierFiltersImpl<T>::UncertaintyOutlierFilter::UncertaintyOutlierFilter(const Parameters& params):
+        OutlierFilter("UncertaintyOutlierFilter", UncertaintyOutlierFilter::availableParameters(), params),
+        useSoftThreshold(Parametrizable::get<bool>("useSoftThreshold")),
+        threshold(Parametrizable::get<T>("threshold"))
+{
+}
+
+template<typename T>
+typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::UncertaintyOutlierFilter::compute(
+        const DataPoints& filteredReading,
+        const DataPoints& filteredReference,
+        const Matches& input)
+{
+        const int knn = input.dists.rows();
+        const int readPtsCount = input.dists.cols();
+
+        OutlierWeights w(knn, readPtsCount);
+
+        bool uncertaintyInReading = filteredReading.descriptorExists("skewUncertainty") && filteredReading.descriptorExists("simpleSensorNoise");
+        bool uncertaintyInReference = filteredReference.descriptorExists("skewUncertainty") && filteredReference.descriptorExists("simpleSensorNoise");
+        if(!uncertaintyInReading && !uncertaintyInReference)
+        {
+                throw typename PointMatcher<T>::DataPoints::InvalidField("UncertaintyOutlierFilter: Error, cannot find skewUncertainty and simpleSensorNoise descriptors in either reading or reference clouds.");
+        }
+
+        Matrix readingVariance;
+        if(uncertaintyInReading)
+        {
+                readingVariance = filteredReading.getDescriptorViewByName("skewUncertainty").array().pow(2) + filteredReading.getDescriptorViewByName("simpleSensorNoise").array().pow(2);
+        }
+        else
+        {
+                readingVariance = Matrix::Zero(1, filteredReading.getNbPoints());
+        }
+
+        Matrix referenceVariance;
+        if(uncertaintyInReference)
+        {
+                referenceVariance = filteredReference.getDescriptorViewByName("skewUncertainty").array().pow(2) + filteredReference.getDescriptorViewByName("simpleSensorNoise").array().pow(2);
+        }
+        else
+        {
+                referenceVariance = Matrix::Zero(1, filteredReference.getNbPoints());
+        }
+
+
+        for(int k=0; k < knn; k++)
+        {
+                for(int idRead=0; idRead < readPtsCount; idRead++)
+                {
+                        const int idRef = input.ids(k, idRead);
+                        if (idRef == MatchersImpl<T>::NNS::InvalidIndex){
+                                w(k, idRead) = 0;
+                                continue;
+                        }
+
+                        const T variance = readingVariance(0, idRead) + referenceVariance(0, idRef);
+                        if(!useSoftThreshold)
+                        {
+                                if (std::sqrt(variance) < threshold)
+                                        w(k, idRead) = 1;
+                                else
+                                        w(k, idRead) = 0;
+                        }
+                        else
+                        {
+                                w(k, idRead) = 1.0 / variance;
+                        }
+                }
+        }
+
+        if(useSoftThreshold)
+                w = w/w.maxCoeff();
+
+        return w;
+}
+
+template struct OutlierFiltersImpl<float>::UncertaintyOutlierFilter;
+template struct OutlierFiltersImpl<double>::UncertaintyOutlierFilter;
+

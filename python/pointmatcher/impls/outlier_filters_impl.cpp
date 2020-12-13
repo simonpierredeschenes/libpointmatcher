@@ -101,5 +101,16 @@ namespace pointmatcher
 
 			.def(py::init<const std::string&, const ParametersDoc, const Parameters&>(), py::arg("className"), py::arg("paramsDoc"), py::arg("params"))
 			.def(py::init<const Parameters&>(), py::arg("params") = Parameters());
+
+		using UncertaintyOutlierFilter = OutlierFiltersImpl::UncertaintyOutlierFilter;
+		py::class_<UncertaintyOutlierFilter, std::shared_ptr<UncertaintyOutlierFilter>, OutlierFilter>(pyOutlierFilterImpl, "UncertaintyOutlierFilter")
+			.def_static("description", &UncertaintyOutlierFilter::description)
+			.def_static("availableParameters", &UncertaintyOutlierFilter::availableParameters)
+
+			.def_readonly("useSoftThreshold", &UncertaintyOutlierFilter::useSoftThreshold)
+			.def_readonly("threshold", &UncertaintyOutlierFilter::threshold)
+
+			.def(py::init<const Parameters&>(), py::arg("params") = Parameters())
+			.def("compute", &UncertaintyOutlierFilter::compute, py::arg("filteredReading"), py::arg("filteredReference"), py::arg("input"));
 	}
 }
