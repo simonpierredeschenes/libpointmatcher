@@ -16,10 +16,10 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	
 	inline static const std::string description()
 	{
-		return "Adds a 1D descriptor named <skewWeight> that represents the weight of each point in the minimization process, based on the skew caused by noise on speed and acceleration.\n\n"
-			   "Required descriptors: simpleSensorNoise (for skew model no. 1), normals (for skew model no. 2) curvatures (for skew model no. 3), rings (for 3D point clouds).\n"
+		return "Adds a 1D descriptor named <skewUncertainty> that represents the uncertainty of each point, based on the skew caused by noise on speed and acceleration.\n\n"
+			   "Required descriptors: normals (for skew model no. 2) curvatures (for skew model no. 3), rings (for 3D point clouds).\n"
 			   "Required times: stamps.\n"
-			   "Produced descriptors:  skewWeight.\n"
+			   "Produced descriptors:  skewUncertainty.\n"
 			   "Sensor assumed to be at the origin: yes.\n"
 			   "Altered descriptors:  none.\n"
 			   "Altered features:     none.";
@@ -28,12 +28,7 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
-				{ "skewModel",                  "Skew model used for weighting. Choices: 0=Model based on time only, 1=Model based on speed and acceleration noises, 2=Model based on speed and acceleration noises and on incidence angle, 3=Model based on \\cite{Al-Nuaimi2016}",
-																																   "0",    "0",    "3",
-																																						  &Parametrizable::Comp <
-																																						  unsigned > },
-				{ "rangePrecision",             "Precision of range measurements",                                                 "0.02", "-inf", "inf", &Parametrizable::Comp <
-																																						  T > },
+				{ "skewModel",                  "Skew model used for computing uncertainty. Choices: 0=Model based on time only, 1=Model based on speed and acceleration noises, 2=Model based on speed and acceleration noises and on incidence angle, 3=Model based on \\cite{Al-Nuaimi2016}", "0",    "0",    "3", &Parametrizable::Comp < unsigned > },
 				{ "linearSpeedsX",              "Comma-separated linear speeds along the X axis during the scan",         "0" },
 				{ "linearSpeedsY",              "Comma-separated linear speeds along the Y axis during the scan",         "0" },
 				{ "linearSpeedsZ",              "Comma-separated linear speeds along the Z axis during the scan",         "0" },
@@ -46,11 +41,9 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 				{ "angularAccelerationsX",      "Comma-separated angular accelerations along the X axis during the scan", "0" },
 				{ "angularAccelerationsY",      "Comma-separated angular accelerations along the Y axis during the scan", "0" },
 				{ "angularAccelerationsZ",      "Comma-separated angular accelerations along the Z axis during the scan", "0" },
-				{ "measureTimes",               "Times at which inertial measurements were acquired",                              "0" },
-				{ "cornerPointWeight",          "Weight to give to points at junction of multiple surfaces",                       "1",    "-inf", "inf", &Parametrizable::Comp <
-																																						  T > },
-				{ "weightQuantile",             "Quantile under which weights are set to 0",                                       "0",    "-inf", "inf", &Parametrizable::Comp <
-																																						  T > },
+				{ "measureTimes",               "Times at which inertial measurements were acquired",                     "0" },
+				{ "cornerPointUncertainty",     "Uncertainty to add to points at junction of multiple surfaces",          "0",    "-inf", "inf", &Parametrizable::Comp < T > },
+				{ "uncertaintyQuantile",        "Quantile of uncertainty over which uncertainty is set to infinity",      "1",    "-inf", "inf", &Parametrizable::Comp < T > },
 		};
 	}
 	
@@ -61,7 +54,6 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	virtual void inPlaceFilter(DataPoints& value);
 	
 	const unsigned skewModel;
-	const T rangePrecision;
 	const Array linearSpeedNoisesX;
 	const Array linearSpeedNoisesY;
 	const Array linearSpeedNoisesZ;
@@ -75,8 +67,8 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	const Array angularAccelerationNoisesY;
 	const Array angularAccelerationNoisesZ;
 	const Array measureTimes;
-	const T cornerPointWeight;
-	const T weightQuantile;
+	const T cornerPointUncertainty;
+	const T uncertaintyQuantile;
 
 private:
 	Array castToLinearSpeedNoises(const std::string& values);

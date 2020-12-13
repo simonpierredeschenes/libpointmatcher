@@ -172,7 +172,6 @@ template<typename T>
 NoiseSkewDataPointsFilter<T>::NoiseSkewDataPointsFilter(const Parameters& params):
 		PointMatcher<T>::DataPointsFilter("NoiseSkewDataPointsFilter", NoiseSkewDataPointsFilter::availableParameters(), params),
 		skewModel(Parametrizable::get<unsigned>("skewModel")),
-		rangePrecision(Parametrizable::get<T>("rangePrecision")),
 		linearSpeedNoisesX(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsX"))),
 		linearSpeedNoisesY(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsY"))),
 		linearSpeedNoisesZ(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsZ"))),
@@ -186,8 +185,8 @@ NoiseSkewDataPointsFilter<T>::NoiseSkewDataPointsFilter(const Parameters& params
 		angularAccelerationNoisesY(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsY"))),
 		angularAccelerationNoisesZ(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsZ"))),
 		measureTimes(castToArray(Parametrizable::getParamValueString("measureTimes"))),
-		cornerPointWeight(Parametrizable::get<T>("cornerPointWeight")),
-		weightQuantile(Parametrizable::get<T>("weightQuantile"))
+		cornerPointUncertainty(Parametrizable::get<T>("cornerPointUncertainty")),
+		uncertaintyQuantile(Parametrizable::get<T>("uncertaintyQuantile"))
 {
 }
 
@@ -207,28 +206,22 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find stamps in times.");
 	}
 	
-	Array weights = Array::Zero(1, cloud.getNbPoints());
+	Array uncertainties = Array::Zero(1, cloud.getNbPoints());
 	switch(skewModel)
 	{
 		case 0:
 		{
 			const auto& stamps = cloud.getTimeViewByName("stamps");
 			Array firingDelays = (stamps.array() - stamps.minCoeff()).template cast<T>() / 1e9;
-			weights = firingDelays.maxCoeff() - firingDelays;
+			uncertainties = firingDelays * 0.5;
 			break;
 		}
 		case 1:
 		{
-			if(!cloud.descriptorExists("simpleSensorNoise"))
-			{
-				throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find simple sensor noise in descriptors.");
-			}
-			
 			Eigen::Array<int, 1, Eigen::Dynamic> idTable = Eigen::Array<int, 1, Eigen::Dynamic>::LinSpaced(cloud.getNbPoints(), 0, cloud.getNbPoints() - 1);
 			typename PM::DataPoints orderedDataPoints = cloud;
 			
 			const auto& stamps = orderedDataPoints.getTimeViewByName("stamps");
-			const auto& simpleSensorNoise = orderedDataPoints.getDescriptorViewByName("simpleSensorNoise");
 			
 			std::vector<int> stampOrdering = computeOrdering<std::int64_t>(stamps);
 			applyOrdering(stampOrdering, idTable, orderedDataPoints);
@@ -312,9 +305,8 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			allPossibleErrors.row(5) = (ftbrCorrectedPoints - ftfrCorrectedPoints).pow(2).colwise().sum().sqrt() / 2.0;
 			
 			Array estimatedErrors = allPossibleErrors.colwise().maxCoeff();
-			Array dataPointsWeights = 1.0 / (estimatedErrors + simpleSensorNoise.array()).pow(1);
 			
-			visit_lambda(dataPointsWeights, [&weights, &idTable](T value, int i, int j){ weights(0, idTable(i, j)) = value; });
+			visit_lambda(estimatedErrors, [&uncertainties, &idTable](T value, int i, int j){ uncertainties(0, idTable(i, j)) = value; });
 			break;
 		}
 		case 2:
@@ -542,7 +534,6 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				allPossibleErrors.row(5) = (ftbrRightDistances - ftfrRightDistances).abs() / 2.0;
 				
 				Array estimatedErrors = allPossibleErrors.colwise().maxCoeff();
-				Array ringWeights = 1.0 / (estimatedErrors + rangePrecision).pow(1);
 				
 				Array cornerness = Array::Zero(estimatedErrors.rows(), estimatedErrors.cols());
 				cornerness.block(0, 1, 1, cornerness.cols() - 1) = (estimatedErrors.block(0, 1, 1, estimatedErrors.cols() - 1) -
@@ -598,23 +589,23 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 							.binaryExpr(ftfrCorrectedPointDirections.row(0) / ftfrCorrectedPointVerticalAngles.cos(), [](T a, T b){ return std::atan2(a, b); });
 				}
 				
-				Array cornerWeights = Array::Ones(1, points.cols());
+				Array cornerUncertainties = Array::Zero(1, points.cols());
 				for(const auto& cornerId: cornerIds)
 				{
 					T lowerHorizontalAngle = std::min({ btbrCorrectedPointHorizontalAngles(0, cornerId), btfrCorrectedPointHorizontalAngles(0, cornerId),
 														ftbrCorrectedPointHorizontalAngles(0, cornerId), ftfrCorrectedPointHorizontalAngles(0, cornerId) });
 					T higherHorizontalAngle = std::max({ btbrCorrectedPointHorizontalAngles(0, cornerId), btfrCorrectedPointHorizontalAngles(0, cornerId),
 														 ftbrCorrectedPointHorizontalAngles(0, cornerId), ftfrCorrectedPointHorizontalAngles(0, cornerId) });
-					visit_lambda(pointHorizontalAngles, [this, &lowerHorizontalAngle, &higherHorizontalAngle, &cornerWeights](T value, int i, int j){
+					visit_lambda(pointHorizontalAngles, [this, &lowerHorizontalAngle, &higherHorizontalAngle, &cornerUncertainties](T value, int i, int j){
 						if(value >= lowerHorizontalAngle && value <= higherHorizontalAngle)
 						{
-							cornerWeights(i, j) = cornerPointWeight;
+							cornerUncertainties(i, j) = cornerPointUncertainty;
 						}
 					});
 				}
-				ringWeights *= cornerWeights;
+				estimatedErrors += cornerUncertainties;
 				
-				visit_lambda(ringWeights, [&weights, &idTable](T value, int i, int j){ weights(0, idTable(i, j)) = value; });
+				visit_lambda(estimatedErrors, [&uncertainties, &idTable](T value, int i, int j){ uncertainties(0, idTable(i, j)) = value; });
 			}
 			break;
 		}
@@ -633,25 +624,25 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			Array partialWeights = Array::Zero(2, cloud.getNbPoints());
 			partialWeights.row(0) = (scanningAngles / T(4)).cos();
 			partialWeights.row(1) = (curvatures.array() / REFERENCE_CURVATURE).unaryExpr([](T a){ return std::max(std::min(a, T(1)), T(0.25)); });
-			weights = partialWeights.colwise().maxCoeff();
+			uncertainties = 1.0 / partialWeights.colwise().maxCoeff();
 			break;
 		}
 		default:
 			throw InvalidParameter("NoiseSkewDataPointsFilter: Error, skewModel id " + std::to_string(skewModel) + " does not exist.");
 	}
 	
-	std::vector<int> weightOrdering = computeOrdering<T>(weights);
-	int weightQuantileIndex = std::ceil(weightQuantile * (weightOrdering.size() - 1));
-	T weightQuantileValue = weights(0, weightOrdering[weightQuantileIndex]);
-	for(int i = 0; i < weights.cols(); i++)
+	std::vector<int> uncertaintyOrdering = computeOrdering<T>(uncertainties);
+	int uncertaintyQuantileIndex = std::ceil(uncertaintyQuantile * (uncertaintyOrdering.size() - 1));
+	T uncertaintyQuantileValue = uncertainties(0, uncertaintyOrdering[uncertaintyQuantileIndex]);
+	for(int i = 0; i < uncertainties.cols(); i++)
 	{
-		if(weights(0, i) < weightQuantileValue)
+		if(uncertainties(0, i) > uncertaintyQuantileValue)
 		{
-			weights(0, i) = T(0);
+			uncertainties(0, i) = std::numeric_limits<T>::infinity();
 		}
 	}
 	
-	cloud.addDescriptor("skewWeight", weights);
+	cloud.addDescriptor("skewUncertainty", uncertainties);
 }
 
 template struct NoiseSkewDataPointsFilter<float>;

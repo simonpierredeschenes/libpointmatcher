@@ -13,10 +13,9 @@ namespace pointmatcher
 				.def_static("availableParameters", &NoiseSkewDataPointsFilter::availableParameters)
 				
 				.def_readonly("skewModel", &NoiseSkewDataPointsFilter::skewModel)
-				.def_readonly("rangePrecision", &NoiseSkewDataPointsFilter::rangePrecision)
 				.def_readonly("linearSpeedNoisesX", &NoiseSkewDataPointsFilter::linearSpeedNoisesX)
 				.def_readonly("linearSpeedNoisesY", &NoiseSkewDataPointsFilter::linearSpeedNoisesY)
-				.def_readonly("linearSpeedNoiseZ", &NoiseSkewDataPointsFilter::linearSpeedNoisesZ)
+				.def_readonly("linearSpeedNoisesZ", &NoiseSkewDataPointsFilter::linearSpeedNoisesZ)
 				.def_readonly("linearAccelerationNoisesX", &NoiseSkewDataPointsFilter::linearAccelerationNoisesX)
 				.def_readonly("linearAccelerationNoisesY", &NoiseSkewDataPointsFilter::linearAccelerationNoisesY)
 				.def_readonly("linearAccelerationNoisesZ", &NoiseSkewDataPointsFilter::linearAccelerationNoisesZ)
@@ -27,8 +26,8 @@ namespace pointmatcher
 				.def_readonly("angularAccelerationNoisesY", &NoiseSkewDataPointsFilter::angularAccelerationNoisesY)
 				.def_readonly("angularAccelerationNoisesZ", &NoiseSkewDataPointsFilter::angularAccelerationNoisesZ)
 				.def_readonly("measureTimes", &NoiseSkewDataPointsFilter::measureTimes)
-				.def_readonly("cornerPointWeight", &NoiseSkewDataPointsFilter::cornerPointWeight)
-				.def_readonly("weightQuantile", &NoiseSkewDataPointsFilter::weightQuantile)
+				.def_readonly("cornerPointUncertainty", &NoiseSkewDataPointsFilter::cornerPointUncertainty)
+				.def_readonly("uncertaintyQuantile", &NoiseSkewDataPointsFilter::uncertaintyQuantile)
 				
 				.def(py::init<const Parameters&>(), py::arg("params") = Parameters(), "Constructor, uses parameter interface")
 				
