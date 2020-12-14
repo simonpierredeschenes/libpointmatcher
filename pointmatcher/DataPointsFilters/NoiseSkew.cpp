@@ -1,6 +1,7 @@
 #include "NoiseSkew.h"
 #include <numeric>
 #include <boost/lexical_cast.hpp>
+#include <boost/math/distributions/skew_normal.hpp>
 
 template<typename Func>
 struct lambda_as_visitor_wrapper: Func
@@ -27,7 +28,14 @@ void visit_lambda(const Mat& m, const Func& f)
 template<typename T>
 typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToLinearSpeedNoises(const std::string& values)
 {
-	return ((castToArray(values).abs() + 0.001).log() / 65.0) + 0.107;
+	auto skewedNormalDistribution = boost::math::skew_normal_distribution<T>(0.0, 1.0, 1.0);
+	Array linearSpeeds = castToArray(values).abs();
+	Array linearSpeedNoises = Array::Zero(1, linearSpeeds.cols());
+	for(int i = 0; i < linearSpeeds.cols(); i++)
+	{
+		linearSpeedNoises(0, i) = (boost::math::pdf(skewedNormalDistribution, linearSpeeds(0, i)/1.5) / 12.0) + 0.013;
+	}
+	return linearSpeedNoises;
 }
 
 template<typename T>
@@ -39,7 +47,7 @@ typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castT
 template<typename T>
 typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToAngularSpeedNoises(const std::string& values)
 {
-	return (castToArray(values).abs()/65.0).pow(2);
+	return (castToArray(values).abs()/70.0).pow(2);
 }
 
 template<typename T>
