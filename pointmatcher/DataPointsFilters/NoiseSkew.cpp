@@ -1,7 +1,7 @@
 #include "NoiseSkew.h"
 #include <numeric>
 #include <boost/lexical_cast.hpp>
-#include <boost/math/distributions/skew_normal.hpp>
+#include <boost/math/distributions/lognormal.hpp>
 
 template<typename Func>
 struct lambda_as_visitor_wrapper: Func
@@ -26,32 +26,58 @@ void visit_lambda(const Mat& m, const Func& f)
 }
 
 template<typename T>
-typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToLinearSpeedNoises(const std::string& values)
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToLinearSpeedNoises(const std::string& values, bool afterDeskewing)
 {
-	auto skewedNormalDistribution = boost::math::skew_normal_distribution<T>(0.0, 1.0, 1.0);
 	Array linearSpeeds = castToArray(values).abs();
 	Array linearSpeedNoises = Array::Zero(1, linearSpeeds.cols());
-	for(int i = 0; i < linearSpeeds.cols(); i++)
+	if(afterDeskewing)
 	{
-		linearSpeedNoises(0, i) = (boost::math::pdf(skewedNormalDistribution, linearSpeeds(0, i)/1.5) / 12.0) + 0.013;
+		auto distribution = boost::math::lognormal_distribution<T>(0.0, 1.4);
+		for(int i = 0; i < linearSpeeds.cols(); i++)
+		{
+			linearSpeedNoises(0, i) = boost::math::pdf(distribution, linearSpeeds(0, i) / 3.0) / 7.5;
+		}
+	}
+	else
+	{
+		for(int i = 0; i < linearSpeeds.cols(); i++)
+		{
+			linearSpeedNoises(0, i) = 0.14 * linearSpeeds(0, i);
+		}
 	}
 	return linearSpeedNoises;
 }
 
 template<typename T>
-typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToLinearAccelerationNoises(const std::string& values)
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToLinearAccelerationNoises(const std::string& values, bool afterDeskewing)
 {
 	return castToArray(values).abs() * 0.0;
 }
 
 template<typename T>
-typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToAngularSpeedNoises(const std::string& values)
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToAngularSpeedNoises(const std::string& values, bool afterDeskewing)
 {
-	return (castToArray(values).abs()/70.0).pow(2);
+	Array angularSpeeds = castToArray(values).abs();
+	Array angularSpeedNoises = Array::Zero(1, angularSpeeds.cols());
+	if(afterDeskewing)
+	{
+		for(int i = 0; i < angularSpeeds.cols(); i++)
+		{
+			angularSpeedNoises(0, i) = std::pow(angularSpeeds(0, i) / 22.0, 2);
+		}
+	}
+	else
+	{
+		for(int i = 0; i < angularSpeeds.cols(); i++)
+		{
+			angularSpeedNoises(0, i) = 0.72 * angularSpeeds(0, i);
+		}
+	}
+	return angularSpeedNoises;
 }
 
 template<typename T>
-typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToAngularAccelerationNoises(const std::string& values)
+typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castToAngularAccelerationNoises(const std::string& values, bool afterDeskewing)
 {
 	return castToArray(values).abs() * 0.0;
 }
@@ -180,18 +206,18 @@ template<typename T>
 NoiseSkewDataPointsFilter<T>::NoiseSkewDataPointsFilter(const Parameters& params):
 		PointMatcher<T>::DataPointsFilter("NoiseSkewDataPointsFilter", NoiseSkewDataPointsFilter::availableParameters(), params),
 		skewModel(Parametrizable::get<unsigned>("skewModel")),
-		linearSpeedNoisesX(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsX"))),
-		linearSpeedNoisesY(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsY"))),
-		linearSpeedNoisesZ(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsZ"))),
-		linearAccelerationNoisesX(castToLinearAccelerationNoises(Parametrizable::getParamValueString("linearAccelerationsX"))),
-		linearAccelerationNoisesY(castToLinearAccelerationNoises(Parametrizable::getParamValueString("linearAccelerationsY"))),
-		linearAccelerationNoisesZ(castToLinearAccelerationNoises(Parametrizable::getParamValueString("linearAccelerationsZ"))),
-		angularSpeedNoisesX(castToAngularSpeedNoises(Parametrizable::getParamValueString("angularSpeedsX"))),
-		angularSpeedNoisesY(castToAngularSpeedNoises(Parametrizable::getParamValueString("angularSpeedsY"))),
-		angularSpeedNoisesZ(castToAngularSpeedNoises(Parametrizable::getParamValueString("angularSpeedsZ"))),
-		angularAccelerationNoisesX(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsX"))),
-		angularAccelerationNoisesY(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsY"))),
-		angularAccelerationNoisesZ(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsZ"))),
+		linearSpeedNoisesX(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsX"), Parametrizable::get<bool>("afterDeskewing"))),
+		linearSpeedNoisesY(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsY"), Parametrizable::get<bool>("afterDeskewing"))),
+		linearSpeedNoisesZ(castToLinearSpeedNoises(Parametrizable::getParamValueString("linearSpeedsZ"), Parametrizable::get<bool>("afterDeskewing"))),
+		linearAccelerationNoisesX(castToLinearAccelerationNoises(Parametrizable::getParamValueString("linearAccelerationsX"), Parametrizable::get<bool>("afterDeskewing"))),
+		linearAccelerationNoisesY(castToLinearAccelerationNoises(Parametrizable::getParamValueString("linearAccelerationsY"), Parametrizable::get<bool>("afterDeskewing"))),
+		linearAccelerationNoisesZ(castToLinearAccelerationNoises(Parametrizable::getParamValueString("linearAccelerationsZ"), Parametrizable::get<bool>("afterDeskewing"))),
+		angularSpeedNoisesX(castToAngularSpeedNoises(Parametrizable::getParamValueString("angularSpeedsX"), Parametrizable::get<bool>("afterDeskewing"))),
+		angularSpeedNoisesY(castToAngularSpeedNoises(Parametrizable::getParamValueString("angularSpeedsY"), Parametrizable::get<bool>("afterDeskewing"))),
+		angularSpeedNoisesZ(castToAngularSpeedNoises(Parametrizable::getParamValueString("angularSpeedsZ"), Parametrizable::get<bool>("afterDeskewing"))),
+		angularAccelerationNoisesX(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsX"), Parametrizable::get<bool>("afterDeskewing"))),
+		angularAccelerationNoisesY(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsY"), Parametrizable::get<bool>("afterDeskewing"))),
+		angularAccelerationNoisesZ(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsZ"), Parametrizable::get<bool>("afterDeskewing"))),
 		measureTimes(castToArray(Parametrizable::getParamValueString("measureTimes"))),
 		cornerPointUncertainty(Parametrizable::get<T>("cornerPointUncertainty")),
 		uncertaintyQuantile(Parametrizable::get<T>("uncertaintyQuantile"))

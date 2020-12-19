@@ -13,7 +13,7 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	typedef typename PM::DataPoints::InvalidField InvalidField;
 	typedef Parametrizable::InvalidParameter InvalidParameter;
 	typedef Eigen::Array<T, Eigen::Dynamic, Eigen::Dynamic> Array;
-	
+
 	inline static const std::string description()
 	{
 		return "Adds a 1D descriptor named <skewUncertainty> that represents the uncertainty of each point, based on the skew caused by noise on speed and acceleration.\n\n"
@@ -24,7 +24,7 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 			   "Altered descriptors:  none.\n"
 			   "Altered features:     none.";
 	}
-	
+
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
@@ -44,15 +44,16 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 				{ "measureTimes",               "Times at which inertial measurements were acquired",                     "0" },
 				{ "cornerPointUncertainty",     "Uncertainty to add to points at junction of multiple surfaces",          "0",    "-inf", "inf", &Parametrizable::Comp < T > },
 				{ "uncertaintyQuantile",        "Quantile of uncertainty over which uncertainty is set to infinity",      "1",    "-inf", "inf", &Parametrizable::Comp < T > },
+				{ "afterDeskewing",             "1 if this filter is applied after point cloud de-skewing, 0 otherwise.", "1", 	  "0",	  "1",	 &Parametrizable::Comp< bool >},
 		};
 	}
-	
+
 	NoiseSkewDataPointsFilter(const Parameters& params = Parameters());
-	
+
 	virtual DataPoints filter(const DataPoints& input);
-	
+
 	virtual void inPlaceFilter(DataPoints& value);
-	
+
 	const unsigned skewModel;
 	const Array linearSpeedNoisesX;
 	const Array linearSpeedNoisesY;
@@ -71,20 +72,20 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	const T uncertaintyQuantile;
 
 private:
-	Array castToLinearSpeedNoises(const std::string& values);
-	Array castToLinearAccelerationNoises(const std::string& values);
-	Array castToAngularSpeedNoises(const std::string& values);
-	Array castToAngularAccelerationNoises(const std::string& values);
+	Array castToLinearSpeedNoises(const std::string& values, bool afterDeskewing);
+	Array castToLinearAccelerationNoises(const std::string& values, bool afterDeskewing);
+	Array castToAngularSpeedNoises(const std::string& values, bool afterDeskewing);
+	Array castToAngularAccelerationNoises(const std::string& values, bool afterDeskewing);
 	Array castToArray(const std::string& values);
-	
+
 	template<typename U>
 	std::vector<int> computeOrdering(const Eigen::Matrix<U, 1, Eigen::Dynamic>& elements);
-	
+
 	void applyOrdering(const std::vector<int>& ordering, Eigen::Array<int, 1, Eigen::Dynamic>& idTable, DataPoints& dataPoints);
-	
+
 	Array computeTranslations(const Array& linearSpeeds, const Array& linearAccelerations, const Array& times, const Array& firingDelays);
-	
+
 	Array computeRotations(const Array& angularSpeeds, const Array& angularAccelerations, const Array& times, const Array& firingDelays);
-	
+
 	const T REFERENCE_CURVATURE = 40.0;
 };
