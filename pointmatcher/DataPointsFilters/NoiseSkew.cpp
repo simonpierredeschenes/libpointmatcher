@@ -541,7 +541,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 					forwardRotatedPoints = points.rowwise() * angles.row(0).cos() + axesCrossPoints.rowwise() * angles.row(0).sin()
 										   + axesAxesTPoints.rowwise() * (1.0 - angles.row(0).cos());
 				}
-				
+
 				Array btbrRightDistances = ((points - btbrRightPositions) * normals.array()).colwise().sum() /
 										   (backwardRightLaserDirections * normals.array()).colwise().sum();
 				Array btfrRightDistances = ((points - btfrRightPositions) * normals.array()).colwise().sum() /
@@ -558,7 +558,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				Array btfrCorrectedPointDirections = btfrCorrectedPoints.rowwise() / btfrCorrectedPoints.pow(2).colwise().sum().sqrt();
 				Array ftbrCorrectedPointDirections = ftbrCorrectedPoints.rowwise() / ftbrCorrectedPoints.pow(2).colwise().sum().sqrt();
 				Array ftfrCorrectedPointDirections = ftfrCorrectedPoints.rowwise() / ftfrCorrectedPoints.pow(2).colwise().sum().sqrt();
-				
+
 				Array allPossibleErrors = Array::Zero(6, points.cols());
 				allPossibleErrors.row(0) = (btbrRightDistances - btfrRightDistances).abs() / 2.0;
 				allPossibleErrors.row(1) = (btbrRightDistances - ftbrRightDistances).abs() / 2.0;
@@ -568,6 +568,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				allPossibleErrors.row(5) = (ftbrRightDistances - ftfrRightDistances).abs() / 2.0;
 				
 				Array estimatedErrors = allPossibleErrors.colwise().maxCoeff();
+				estimatedErrors = estimatedErrors.unaryExpr([](T v) { return std::isnan(v) ? std::numeric_limits<T>::infinity() : v; });
 				
 				Array cornerness = Array::Zero(estimatedErrors.rows(), estimatedErrors.cols());
 				cornerness.block(0, 1, 1, cornerness.cols() - 1) = (estimatedErrors.block(0, 1, 1, estimatedErrors.cols() - 1) -
