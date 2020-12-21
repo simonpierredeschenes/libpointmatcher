@@ -43,6 +43,7 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 				{ "angularAccelerationsZ",      "Comma-separated angular accelerations along the Z axis during the scan", "0" },
 				{ "measureTimes",               "Times at which inertial measurements were acquired",                     "0" },
 				{ "cornerPointUncertainty",     "Uncertainty to add to points at junction of multiple surfaces",          "0",    "-inf", "inf", &Parametrizable::Comp < T > },
+				{ "uncertaintyThreshold",       "Threshold of uncertainty over which uncertainty is set to infinity",     "1000", "-inf", "inf", &Parametrizable::Comp < T > },
 				{ "uncertaintyQuantile",        "Quantile of uncertainty over which uncertainty is set to infinity",      "1",    "-inf", "inf", &Parametrizable::Comp < T > },
 				{ "afterDeskewing",             "1 if this filter is applied after point cloud de-skewing, 0 otherwise.", "1", 	  "0",	  "1",	 &Parametrizable::Comp< bool >},
 		};
@@ -69,6 +70,7 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	const Array angularAccelerationNoisesZ;
 	const Array measureTimes;
 	const T cornerPointUncertainty;
+	const T uncertaintyThreshold;
 	const T uncertaintyQuantile;
 
 private:

@@ -220,6 +220,7 @@ NoiseSkewDataPointsFilter<T>::NoiseSkewDataPointsFilter(const Parameters& params
 		angularAccelerationNoisesZ(castToAngularAccelerationNoises(Parametrizable::getParamValueString("angularAccelerationsZ"), Parametrizable::get<bool>("afterDeskewing"))),
 		measureTimes(castToArray(Parametrizable::getParamValueString("measureTimes"))),
 		cornerPointUncertainty(Parametrizable::get<T>("cornerPointUncertainty")),
+		uncertaintyThreshold(Parametrizable::get<T>("uncertaintyThreshold")),
 		uncertaintyQuantile(Parametrizable::get<T>("uncertaintyQuantile"))
 {
 }
@@ -690,9 +691,10 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 	std::vector<int> uncertaintyOrdering = computeOrdering<T>(uncertainties);
 	int uncertaintyQuantileIndex = std::ceil(uncertaintyQuantile * (uncertaintyOrdering.size() - 1));
 	T uncertaintyQuantileValue = uncertainties(0, uncertaintyOrdering[uncertaintyQuantileIndex]);
+	T maxUncertainty = std::min(uncertaintyQuantileValue, uncertaintyThreshold);
 	for(int i = 0; i < uncertainties.cols(); i++)
 	{
-		if(uncertainties(0, i) > uncertaintyQuantileValue)
+		if(uncertainties(0, i) > maxUncertainty)
 		{
 			uncertainties(0, i) = std::numeric_limits<T>::infinity();
 		}
