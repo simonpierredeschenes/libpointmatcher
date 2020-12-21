@@ -662,6 +662,27 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			uncertainties = 1.0 / partialWeights.colwise().maxCoeff().sqrt();
 			break;
 		}
+		case 4:
+		{
+			const auto& stamps = cloud.getTimeViewByName("stamps");
+
+			Array firingDelays = (stamps.array() - stamps.minCoeff()).template cast<T>() / 1e9;
+			Array scanningAngles = (firingDelays / firingDelays.maxCoeff()) * T(2 * M_PI);
+			uncertainties = 1.0 / (scanningAngles / T(4)).cos().sqrt();
+			break;
+		}
+		case 5:
+		{
+			if(!cloud.descriptorExists("curvatures"))
+			{
+				throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find curvatures in descriptors.");
+			}
+
+			const auto& curvatures = cloud.getDescriptorViewByName("curvatures");
+
+			uncertainties = 1.0 / (curvatures.array() / REFERENCE_CURVATURE).unaryExpr([](T a){ return std::max(std::min(a, T(1)), T(0.25)); }).sqrt();
+			break;
+		}
 		default:
 			throw InvalidParameter("NoiseSkewDataPointsFilter: Error, skewModel id " + std::to_string(skewModel) + " does not exist.");
 	}

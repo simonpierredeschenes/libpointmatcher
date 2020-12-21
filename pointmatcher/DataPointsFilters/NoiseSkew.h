@@ -17,8 +17,8 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	inline static const std::string description()
 	{
 		return "Adds a 1D descriptor named <skewUncertainty> that represents the uncertainty of each point, based on the skew caused by noise on speed and acceleration.\n\n"
-			   "Required descriptors: normals (for skew model no. 2) curvatures (for skew model no. 3), rings (for 3D point clouds).\n"
-			   "Required times: stamps.\n"
+			   "Required descriptors: normals (for skew model no. 2) curvatures (for skew models no. 3 and 5), rings (for skew model no. 2 with 3D point clouds).\n"
+			   "Required times: stamps (for skew models no. 0, 1, 2, 3 and 4).\n"
 			   "Produced descriptors:  skewUncertainty.\n"
 			   "Sensor assumed to be at the origin: yes.\n"
 			   "Altered descriptors:  none.\n"
@@ -28,7 +28,7 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
-				{ "skewModel",                  "Skew model used for computing uncertainty. Choices: 0=Model based on time only, 1=Model based on speed and acceleration noises, 2=Model based on speed and acceleration noises and on incidence angle, 3=Model based on \\cite{Al-Nuaimi2016}", "0",    "0",    "3", &Parametrizable::Comp < unsigned > },
+				{ "skewModel",                  "Skew model used for computing uncertainty. Choices: 0=Model based on time only, 1=Model based on speed and acceleration noises, 2=Model based on speed and acceleration noises and on incidence angle, 3=Model based on \\cite{Al-Nuaimi2016}, 4=Model based on scanning angle, 5=Model based on curvature", "0",    "0",    "5", &Parametrizable::Comp < unsigned > },
 				{ "linearSpeedsX",              "Comma-separated linear speeds along the X axis during the scan",         "0" },
 				{ "linearSpeedsY",              "Comma-separated linear speeds along the Y axis during the scan",         "0" },
 				{ "linearSpeedsZ",              "Comma-separated linear speeds along the Z axis during the scan",         "0" },
