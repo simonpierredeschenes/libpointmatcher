@@ -669,7 +669,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 
 			Array firingDelays = (stamps.array() - stamps.minCoeff()).template cast<T>() / 1e9;
 			Array scanningAngles = (firingDelays / firingDelays.maxCoeff()) * T(2 * M_PI);
-			uncertainties = 1.0 / (scanningAngles / T(4)).cos().sqrt();
+			uncertainties = 1.0 / (scanningAngles / T(4)).cos().unaryExpr([](T a){ return std::max(a, T(0)); }).sqrt();
 			break;
 		}
 		case 5:
