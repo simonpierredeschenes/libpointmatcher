@@ -248,7 +248,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		{
 			const auto& stamps = cloud.getTimeViewByName("stamps");
 			Array firingDelays = (stamps.array() - stamps.minCoeff()).template cast<T>() / 1e9;
-			uncertainties = firingDelays * 0.5;
+			uncertainties = firingDelays * 0.5 * T(2.0);
 			break;
 		}
 		case 1:
@@ -341,7 +341,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			
 			Array estimatedErrors = allPossibleErrors.colwise().maxCoeff();
 			
-			visit_lambda(estimatedErrors, [&uncertainties, &idTable](T value, int i, int j){ uncertainties(0, idTable(i, j)) = value; });
+			visit_lambda(estimatedErrors, [&uncertainties, &idTable](T value, int i, int j){ uncertainties(0, idTable(i, j)) = value * T(2.0); });
 			break;
 		}
 		case 2:
@@ -641,7 +641,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				}
 				estimatedErrors += cornerUncertainties;
 				
-				visit_lambda(estimatedErrors, [&uncertainties, &idTable](T value, int i, int j){ uncertainties(0, idTable(i, j)) = value; });
+				visit_lambda(estimatedErrors, [&uncertainties, &idTable](T value, int i, int j){ uncertainties(0, idTable(i, j)) = value * T(2.0); });
 			}
 			break;
 		}
