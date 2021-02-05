@@ -122,7 +122,7 @@ void SimpleSensorNoiseDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 	}
 	case 6: // Robosense RS-16
 	{
-		noise = computeLaserNoise(0.02, 0.0037, 0.0, cloud.features);
+		noise = computeLaserNoise(0.02, 0.0015, 0.0, cloud.features);
 		break;
 	}
 	case 7: // No noise
