@@ -32,10 +32,10 @@ typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castT
 	Array linearSpeedNoises = Array::Zero(1, linearSpeeds.cols());
 	if(afterDeskewing)
 	{
-		auto distribution = boost::math::lognormal_distribution<T>(0.0, 1.4);
+		auto distribution = boost::math::lognormal_distribution<T>(0.0, 1.1);
 		for(int i = 0; i < linearSpeeds.cols(); i++)
 		{
-			linearSpeedNoises(0, i) = boost::math::pdf(distribution, linearSpeeds(0, i) / 3.0) / 7.5;
+			linearSpeedNoises(0, i) = boost::math::pdf(distribution, linearSpeeds(0, i) / 1.9) / (1.9 * 4.5);
 		}
 	}
 	else
@@ -63,7 +63,7 @@ typename NoiseSkewDataPointsFilter<T>::Array NoiseSkewDataPointsFilter<T>::castT
 	{
 		for(int i = 0; i < angularSpeeds.cols(); i++)
 		{
-			angularSpeedNoises(0, i) = std::pow(angularSpeeds(0, i) / 22.0, 2);
+			angularSpeedNoises(0, i) = std::pow(angularSpeeds(0, i) / 16.0, 3);
 		}
 	}
 	else
@@ -248,7 +248,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		{
 			const auto& stamps = cloud.getTimeViewByName("stamps");
 			Array firingDelays = (stamps.array() - stamps.minCoeff()).template cast<T>() / 1e9;
-			uncertainties = firingDelays * 0.5 * T(2.0);
+			uncertainties = firingDelays * 0.5 * T(0.5);
 			break;
 		}
 		case 1:
@@ -641,7 +641,7 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 				}
 				estimatedErrors += cornerUncertainties;
 				
-				visit_lambda(estimatedErrors, [&uncertainties, &idTable](T value, int i, int j){ uncertainties(0, idTable(i, j)) = value * T(2.0); });
+				visit_lambda(estimatedErrors, [&uncertainties, &idTable](T value, int i, int j){ uncertainties(0, idTable(i, j)) = value * T(4.0); });
 			}
 			break;
 		}
