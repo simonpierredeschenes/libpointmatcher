@@ -111,6 +111,16 @@ set(EXTERNAL_LIBS "")
 # compile local version of gtest and yaml-cpp
 add_subdirectory(contrib)
 
+#---------------------------
+# DEPENDENCY:  POSIX Threads
+#---------------------------
+find_package(Threads REQUIRED)
+if (CMAKE_VERSION VERSION_LESS 3.1.0)
+  set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+else()
+  set(EXTERNAL_LIBS ${EXTERNAL_LIBS} Threads::Threads)
+endif()
+
 
 #--------------------
 # DEPENDENCY:  boost
@@ -123,9 +133,14 @@ endif ()
 #--------------------
 # DEPENDENCY: eigen 3
 #--------------------
-find_path(EIGEN_INCLUDE_DIR Eigen/Core
-	/usr/local/include/eigen3
-	/usr/include/eigen3
+find_path(EIGEN_INCLUDE_DIR NAMES signature_of_eigen3_matrix_library
+  HINTS  ENV EIGEN3_INC_DIR
+         ENV EIGEN3_DIR
+  PATHS  Eigen/Core
+         /usr/local/include
+         /usr/include
+  PATH_SUFFIXES include eigen3 eigen
+  DOC "Directory containing the Eigen3 header files"
 )
 
 # Suppress Eigen's warning by adding it to the system's library
@@ -165,7 +180,7 @@ if (USE_OPEN_MP)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 		if (CMAKE_COMPILER_IS_GNUCC)
 			set(EXTERNAL_LIBS ${EXTERNAL_LIBS} gomp)
-    	message("-- OpenMP found, parallel computer enabled")
+			message("-- OpenMP found, parallel computer enabled")
 		endif()
 	endif()
 endif ()
@@ -186,7 +201,7 @@ if (USE_OPEN_CL)
 	# if found, add
 	if (OPENCL_LIBRARIES)
 		set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${OPENCL_LIBRARIES})
-    message("-- openCL found, parallel computer enabled for kd-tree")
+		message("-- openCL found, parallel computer enabled for kd-tree")
 	endif ()
 endif()
 
