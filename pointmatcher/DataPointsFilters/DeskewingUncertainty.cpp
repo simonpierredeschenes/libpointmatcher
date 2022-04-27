@@ -151,7 +151,7 @@ void DeskewingUncertaintyDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 																											 orderedDataPoints.getNbPoints() - 1);
 			applyOrdering(stampOrdering, idTable, orderedDataPoints);
 
-			Matrix points = orderedDataPoints.features.topRows(3);
+			Matrix points = orderedDataPoints.features;
 			Matrix firingDelays = (stamps.colwise() - stamps.col(0)).template cast<T>() / 1e9;
 
 			int latestMeasureIndex = 0;
