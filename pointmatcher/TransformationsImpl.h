@@ -46,11 +46,11 @@ struct TransformationsImpl
 	typedef Parametrizable::Parameters Parameters;
 	typedef Parametrizable::ParameterDoc ParameterDoc;
 	typedef Parametrizable::ParametersDoc ParametersDoc;
-	
+
 	typedef typename PointMatcher<T>::DataPoints DataPoints;
 	typedef typename PointMatcher<T>::TransformationParameters TransformationParameters;
 	typedef typename PointMatcher<T>::Transformation Transformation;
-	
+
 	struct RigidTransformation: public Transformation
 	{
 		inline static const std::string description()
@@ -60,6 +60,7 @@ struct TransformationsImpl
 
 		RigidTransformation() : Transformation("RigidTransformation",  ParametersDoc(), Parameters()) {}
 		virtual DataPoints compute(const DataPoints& input, const TransformationParameters& parameters) const;
+		virtual void inPlaceCompute(const TransformationParameters& parameters, DataPoints& cloud) const;
 		virtual bool checkParameters(const TransformationParameters& parameters) const;
 		virtual TransformationParameters correctParameters(const TransformationParameters& parameters) const;
 	};
@@ -70,8 +71,10 @@ struct TransformationsImpl
 		{
 			return "Similarity transformation (rotation + translation + scale).";
 		}
-		
+
+		SimilarityTransformation() : Transformation("SimilarityTransformation",  ParametersDoc(), Parameters()) {}
 		virtual DataPoints compute(const DataPoints& input, const TransformationParameters& parameters) const;
+		virtual void inPlaceCompute(const TransformationParameters& parameters, DataPoints& cloud) const;
 		virtual bool checkParameters(const TransformationParameters& parameters) const;
 		virtual TransformationParameters correctParameters(const TransformationParameters& parameters) const;
 	};
@@ -85,6 +88,7 @@ struct TransformationsImpl
 
 		PureTranslation() : Transformation("PureTranslation",  ParametersDoc(), Parameters()) {}
 		virtual DataPoints compute(const DataPoints& input, const TransformationParameters& parameters) const;
+		virtual void inPlaceCompute(const TransformationParameters& parameters, DataPoints& cloud) const;
 		virtual bool checkParameters(const TransformationParameters& parameters) const;
 		virtual TransformationParameters correctParameters(const TransformationParameters& parameters) const;
 	};

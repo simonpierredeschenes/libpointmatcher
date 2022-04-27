@@ -87,17 +87,27 @@ sortEigenValues(const typename PointMatcher<T>::Vector& eigenVa)
 }
 
 template<typename T>
-typename PointMatcher<T>::Vector 
-serializeEigVec(const typename PointMatcher<T>::Matrix& eigenVe)
+typename PointMatcher<T>::Vector serializeEigVec(const typename PointMatcher<T>::Matrix& eigenVe)
 {
-	// serialize row major
+	// Serialize the eigen vectors column major
 	const int eigenVeDim = eigenVe.cols();
 	typename PointMatcher<T>::Vector output(eigenVeDim*eigenVeDim);
-	for(int k=0; k < eigenVeDim; ++k)
-	{
-		output.segment(k*eigenVeDim, eigenVeDim) = 
-			eigenVe.row(k).transpose();
-	}
+
+	for (int k = 0; k < eigenVeDim; ++k)
+		output.segment(k * eigenVeDim, eigenVeDim) = eigenVe.col(k);
+
+	return output;
+}
+
+template<typename T>
+typename PointMatcher<T>::Matrix deserializeEigVec(const typename PointMatcher<T>::Vector& eigenVe)
+{
+	// Deserialize the eigen vectors column major
+	const int eigenVeDim = std::sqrt(eigenVe.size());
+	typename PointMatcher<T>::Matrix output(eigenVeDim, eigenVeDim);
+
+	for (int k = 0; k < eigenVeDim; ++k)
+		output.col(k) = eigenVe.segment(k * eigenVeDim, eigenVeDim);
 
 	return output;
 }

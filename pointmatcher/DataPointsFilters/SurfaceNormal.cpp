@@ -50,19 +50,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Constructor
 template<typename T>
 SurfaceNormalDataPointsFilter<T>::SurfaceNormalDataPointsFilter(const Parameters& params):
-	PointMatcher<T>::DataPointsFilter("SurfaceNormalDataPointsFilter",
-		SurfaceNormalDataPointsFilter::availableParameters(), params),
-	knn(Parametrizable::get<int>("knn")),
-	maxDist(Parametrizable::get<T>("maxDist")),
-	epsilon(Parametrizable::get<T>("epsilon")),
-	keepNormals(Parametrizable::get<bool>("keepNormals")),
-	keepDensities(Parametrizable::get<bool>("keepDensities")),
-	keepEigenValues(Parametrizable::get<bool>("keepEigenValues")),
-	keepEigenVectors(Parametrizable::get<bool>("keepEigenVectors")),
-	keepMatchedIds(Parametrizable::get<bool>("keepMatchedIds")),
-	keepMeanDist(Parametrizable::get<bool>("keepMeanDist")),
-	sortEigen(Parametrizable::get<bool>("sortEigen")),
-	smoothNormals(Parametrizable::get<bool>("smoothNormals"))
+		PointMatcher<T>::DataPointsFilter("SurfaceNormalDataPointsFilter",
+										  SurfaceNormalDataPointsFilter::availableParameters(), params),
+		knn(Parametrizable::get<int>("knn")),
+		maxDist(Parametrizable::get<T>("maxDist")),
+		epsilon(Parametrizable::get<T>("epsilon")),
+		keepNormals(Parametrizable::get<bool>("keepNormals")),
+		keepDensities(Parametrizable::get<bool>("keepDensities")),
+		keepEigenValues(Parametrizable::get<bool>("keepEigenValues")),
+		keepEigenVectors(Parametrizable::get<bool>("keepEigenVectors")),
+		keepMatchedIds(Parametrizable::get<bool>("keepMatchedIds")),
+		keepMeanDist(Parametrizable::get<bool>("keepMeanDist")),
+		sortEigen(Parametrizable::get<bool>("sortEigen")),
+		smoothNormals(Parametrizable::get<bool>("smoothNormals"))
 {
 }
 
@@ -70,7 +70,7 @@ SurfaceNormalDataPointsFilter<T>::SurfaceNormalDataPointsFilter(const Parameters
 template<typename T>
 typename PointMatcher<T>::DataPoints
 SurfaceNormalDataPointsFilter<T>::filter(
-	const DataPoints& input)
+		const DataPoints& input)
 {
 	DataPoints output(input);
 	inPlaceFilter(output);
@@ -80,7 +80,7 @@ SurfaceNormalDataPointsFilter<T>::filter(
 // In-place filter
 template<typename T>
 void SurfaceNormalDataPointsFilter<T>::inPlaceFilter(
-	DataPoints& cloud)
+		DataPoints& cloud)
 {
 	typedef typename DataPoints::View View;
 	typedef typename DataPoints::Label Label;
@@ -184,7 +184,7 @@ void SurfaceNormalDataPointsFilter<T>::inPlaceFilter(
 		const Vector mean = d.rowwise().sum() / T(realKnn);
 		const Matrix NN = d.colwise() - mean;
 
-		const Matrix C(NN * NN.transpose());
+		const Matrix C((NN * NN.transpose()) / T(realKnn));
 		Vector eigenVa = Vector::Zero(featDim-1, 1);
 		Matrix eigenVe = Matrix::Zero(featDim-1, featDim-1);
 		// Ensure that the matrix is suited for eigenvalues calculation
@@ -223,7 +223,7 @@ void SurfaceNormalDataPointsFilter<T>::inPlaceFilter(
 				normals->col(i) = eigenVe.col(0);
 			else
 				normals->col(i) = computeNormal<T>(eigenVa, eigenVe);
-			
+
 			// clamp normals to [-1,1] to handle approximation errors
 			normals->col(i) = normals->col(i).cwiseMax(-1.0).cwiseMin(1.0);
 		}

@@ -50,27 +50,27 @@ using namespace PointMatcherSupport;
 
 template<typename T>
 InspectorsImpl<T>::PerformanceInspector::PerformanceInspector(const std::string& className, const ParametersDoc paramsDoc, const Parameters& params):
-	Inspector(className,paramsDoc,params),
-	baseFileName(Parametrizable::get<string>("baseFileName")),
-	bDumpPerfOnExit(Parametrizable::get<bool>("dumpPerfOnExit")),
-	bDumpStats(Parametrizable::get<bool>("dumpStats"))
+		Inspector(className,paramsDoc,params),
+		baseFileName(Parametrizable::get<string>("baseFileName")),
+		bDumpPerfOnExit(Parametrizable::get<bool>("dumpPerfOnExit")),
+		bDumpStats(Parametrizable::get<bool>("dumpStats"))
 
 {//FIXME: do we need that constructor?
 }
 
 template<typename T>
 InspectorsImpl<T>::PerformanceInspector::PerformanceInspector(const Parameters& params):
-	Inspector("PerformanceInspector", PerformanceInspector::availableParameters(), params),
-	baseFileName(Parametrizable::get<string>("baseFileName")),
-	bDumpPerfOnExit(Parametrizable::get<bool>("dumpPerfOnExit")),
-	bDumpStats(Parametrizable::get<bool>("dumpStats"))
+		Inspector("PerformanceInspector", PerformanceInspector::availableParameters(), params),
+		baseFileName(Parametrizable::get<string>("baseFileName")),
+		bDumpPerfOnExit(Parametrizable::get<bool>("dumpPerfOnExit")),
+		bDumpStats(Parametrizable::get<bool>("dumpStats"))
 {}
 
 template<typename T>
 void InspectorsImpl<T>::PerformanceInspector::addStat(const std::string& name, double data)
 {
 	if (!bDumpStats) return;
-	
+
 	HistogramMap::iterator it(stats.find(name));
 	if (it == stats.end()) {
 		LOG_INFO_STREAM("Adding new stat: " << name);
@@ -136,13 +136,13 @@ template struct InspectorsImpl<double>::PerformanceInspector;
 	}*/
 template<typename T>
 InspectorsImpl<T>::AbstractVTKInspector::AbstractVTKInspector(const std::string& className, const ParametersDoc paramsDoc, const Parameters& params):
-	PerformanceInspector(className,paramsDoc,params),
-	streamIter(0),
-	bDumpIterationInfo(Parametrizable::get<bool>("dumpIterationInfo")),
-	bDumpDataLinks(Parametrizable::get<bool>("dumpDataLinks")),
-	bDumpReading(Parametrizable::get<bool>("dumpReading")),
-	bDumpReference(Parametrizable::get<bool>("dumpReference")),
-	bWriteBinary(Parametrizable::get<bool>("writeBinary"))
+		PerformanceInspector(className,paramsDoc,params),
+		streamIter(0),
+		bDumpIterationInfo(Parametrizable::get<bool>("dumpIterationInfo")),
+		bDumpDataLinks(Parametrizable::get<bool>("dumpDataLinks")),
+		bDumpReading(Parametrizable::get<bool>("dumpReading")),
+		bDumpReference(Parametrizable::get<bool>("dumpReference")),
+		bWriteBinary(Parametrizable::get<bool>("writeBinary"))
 {
 }
 
@@ -160,7 +160,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpDataPoints(const DataPoints& d
 {
 	const Matrix& features(data.features);
 	//const Matrix& descriptors(data.descriptors);
-	
+
 	stream << "# vtk DataFile Version 3.0\n";
 	stream << "File created by libpointmatcher\n";
 	stream << (bWriteBinary ? "BINARY":"ASCII") << "\n";
@@ -176,7 +176,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpDataPoints(const DataPoints& d
 	{
 		writeVtkData(bWriteBinary, features.transpose(), stream)  << "\n";
 	}
-	
+
 	stream << "VERTICES "  << features.cols() << " "<< features.cols() * 2 << "\n";
 	for (int i = 0; i < features.cols(); ++i){
 		if(bWriteBinary){
@@ -190,7 +190,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpDataPoints(const DataPoints& d
 			stream << "1 " << i << "\n";
 		}
 	}
-	
+
 
 	// Save points
 	stream << "POINT_DATA " << features.cols() << "\n";
@@ -207,11 +207,15 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpDataPoints(const DataPoints& d
 		{
 			buildTensorStream(stream, "eigVectors", data);
 		}
+		else if(it->text == "covariance")
+		{
+			buildTensorStream(stream, "covariance", data);
+		}
 		else if(it->text == "color")
 		{
 			buildColorStream(stream, "color", data);
 		}
-		// handle generic cases
+			// handle generic cases
 		else if(it->span == 1)
 		{
 			buildScalarStream(stream, it->text, data);
@@ -225,7 +229,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpDataPoints(const DataPoints& d
 			LOG_WARNING_STREAM("Could not save label named " << it->text << " (dim=" << it->span << ").");
 		}
 	}
-	
+
 	// Loop through all time fields, split in high 32 bits and low 32 bits and export as two scalar
 	for(BOOST_AUTO(it, data.timeLabels.begin()); it != data.timeLabels.end(); it++)
 	{
@@ -239,7 +243,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpMeshNodes(const DataPoints& da
 {
 	//const Matrix& features(data.features);
 	const Matrix& descriptors(data.descriptors.transpose());
-	
+
 	assert(descriptors.cols() >= 15);
 
 	stream << "# vtk DataFile Version 3.0\n";
@@ -266,7 +270,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpMeshNodes(const DataPoints& da
 	{
 		stream << "3 " << (i*3) << " " << (i*3 + 1) << " " << (i*3 + 2) << "\n";
 	}
-	
+
 	stream << "CELL_DATA " << descriptors.rows() << "\n";
 
 	stream << "NORMALS triangle_normals float\n";
@@ -284,11 +288,11 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpMeshNodes(const DataPoints& da
 // FIXME:rethink how we dump stuff (accumulate in a correctly-referenced table, and then dump?) and unify with previous
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::dumpDataLinks(
-	const DataPoints& ref, 
-	const DataPoints& reading, 
-	const Matches& matches, 
-	const OutlierWeights& featureOutlierWeights, 
-	std::ostream& stream)
+		const DataPoints& ref,
+		const DataPoints& reading,
+		const Matches& matches,
+		const OutlierWeights& featureOutlierWeights,
+		std::ostream& stream)
 {
 
 	const Matrix& refFeatures(ref.features);
@@ -297,12 +301,12 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpDataLinks(
 	const Matrix& readingFeatures(reading.features);
 	const int readingPtCount(readingFeatures.cols());
 	const int totalPtCount(refPtCount+readingPtCount);
-	
+
 	stream << "# vtk DataFile Version 3.0\n";
 	stream << "comment\n";
 	stream << "ASCII\n";
 	stream << "DATASET POLYDATA\n";
-	
+
 	stream << "POINTS " << totalPtCount << " float\n";
 	if(refFeatures.rows() == 4)
 	{
@@ -319,7 +323,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpDataLinks(
 		stream << readingFeatures.transpose() << "\n";
 	}
 	const int knn = matches.ids.rows();
-	
+
 	size_t matchCount = readingPtCount*knn;
 	for (int k = 0; k < knn; ++k)
 	{
@@ -383,13 +387,13 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpMeshNodes(const DataPoints& fi
 
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::dumpIteration(
-	const size_t iterationNumber,
-	const TransformationParameters& parameters,
-	const DataPoints& filteredReference,
-	const DataPoints& reading,
-	const Matches& matches,
-	const OutlierWeights& outlierWeights, 
-	const TransformationCheckers& transCheck)
+		const size_t iterationNumber,
+		const TransformationParameters& parameters,
+		const DataPoints& filteredReference,
+		const DataPoints& reading,
+		const Matches& matches,
+		const OutlierWeights& outlierWeights,
+		const TransformationCheckers& transCheck)
 {
 
 	if (bDumpDataLinks){
@@ -397,19 +401,19 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpIteration(
 		dumpDataLinks(filteredReference, reading, matches, outlierWeights, *streamLinks);
 		closeStream(streamLinks);
 	}
-	
+
 	if (bDumpReading){
 		ostream* streamRead(openStream("reading", iterationNumber));
 		dumpDataPoints(reading, *streamRead);
 		closeStream(streamRead);
 	}
-	
+
 	if (bDumpReference){
 		ostream* streamRef(openStream("reference", iterationNumber));
 		dumpDataPoints(filteredReference, *streamRef);
 		closeStream(streamRef);
 	}
-        
+
 	if (!bDumpIterationInfo) return;
 
 	// streamIter must be define by children
@@ -424,25 +428,25 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpIteration(
 			{
 				if (!(j == 0 && i == 0))
 					*streamIter << ", ";
-				*streamIter << transCheck[j]->getConditionVariableNames()[i] << ", "; 
-				*streamIter << transCheck[j]->getLimitNames()[i]; 
+				*streamIter << transCheck[j]->getConditionVariableNames()[i] << ", ";
+				*streamIter << transCheck[j]->getLimitNames()[i];
 			}
 		}
-		
+
 		*streamIter << "\n";
 	}
 
-	
+
 	for(unsigned int j = 0; j < transCheck.size(); j++)
 	{
 		for(unsigned int i=0; i < transCheck[j]->getConditionVariables().size(); i++)
 		{
-		
+
 			if (!(j == 0 && i == 0))
 				*streamIter << ", ";
 
 			*streamIter << transCheck[j]->getConditionVariables()[i] << ", ";
-			*streamIter << transCheck[j]->getLimits()[i]; 
+			*streamIter << transCheck[j]->getLimits()[i];
 		}
 	}
 
@@ -454,7 +458,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::buildGenericAttributeStream(std::o
 {
 	if (!cloud.descriptorExists(nameTag))
 		return;
-		
+
 	const BOOST_AUTO(desc, cloud.getDescriptorViewByName(nameTag));
 	assert(desc.rows() <= forcedDim);
 
@@ -490,59 +494,59 @@ void InspectorsImpl<T>::AbstractVTKInspector::buildGenericAttributeStream(std::o
 
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::buildScalarStream(std::ostream& stream,
-	const std::string& name,
-	const DataPoints& cloud)
+																const std::string& name,
+																const DataPoints& cloud)
 {
 	buildGenericAttributeStream(stream, "SCALARS", name, cloud, 1);
 }
 
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::buildNormalStream(std::ostream& stream,
-	const std::string& name,
-	const DataPoints& cloud)
+																const std::string& name,
+																const DataPoints& cloud)
 {
 	buildGenericAttributeStream(stream, "NORMALS", name, cloud, 3);
 }
 
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::buildVectorStream(std::ostream& stream,
-	const std::string& name,
-	const DataPoints& cloud)
+																const std::string& name,
+																const DataPoints& cloud)
 {
 	buildGenericAttributeStream(stream, "VECTORS", name, cloud, 3);
 }
 
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::buildTensorStream(std::ostream& stream,
-	const std::string& name,
-	const DataPoints& cloud)
+																const std::string& name,
+																const DataPoints& cloud)
 {
 	buildGenericAttributeStream(stream, "TENSORS", name, cloud, 9);
 }
 
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::buildColorStream(std::ostream& stream,
-	const std::string& name,
-	const DataPoints& cloud)
+															   const std::string& name,
+															   const DataPoints& cloud)
 {
 	buildGenericAttributeStream(stream, "COLOR_SCALARS", name, cloud, 4);
 }
 
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::buildScalarStream(std::ostream& stream,
-	const std::string& name,
-	const DataPoints& ref, 
-	const DataPoints& reading)
+																const std::string& name,
+																const DataPoints& ref,
+																const DataPoints& reading)
 {
-			
-	const Matrix descRef(ref.getDescriptorByName(name));	
+
+	const Matrix descRef(ref.getDescriptorByName(name));
 	const Matrix descRead(reading.getDescriptorByName(name));
 
 	if(descRef.rows() != 0 && descRead.rows() != 0)
 	{
 		stream << "SCALARS " << name << " float\n";
 		stream << "LOOKUP_TABLE default\n";
-		
+
 		stream << padWithZeros(
 				descRef, 1, ref.descriptors.cols()).transpose();
 		stream << "\n";
@@ -555,12 +559,12 @@ void InspectorsImpl<T>::AbstractVTKInspector::buildScalarStream(std::ostream& st
 
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::buildNormalStream(std::ostream& stream,
-	const std::string& name,
-	const DataPoints& ref, 
-	const DataPoints& reading)
+																const std::string& name,
+																const DataPoints& ref,
+																const DataPoints& reading)
 {
-			
-	const Matrix descRef(ref.getDescriptorByName(name));	
+
+	const Matrix descRef(ref.getDescriptorByName(name));
 	const Matrix descRead(reading.getDescriptorByName(name));
 
 	if(descRef.rows() != 0 && descRead.rows() != 0)
@@ -579,12 +583,12 @@ void InspectorsImpl<T>::AbstractVTKInspector::buildNormalStream(std::ostream& st
 
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::buildVectorStream(std::ostream& stream,
-	const std::string& name,
-	const DataPoints& ref, 
-	const DataPoints& reading)
+																const std::string& name,
+																const DataPoints& ref,
+																const DataPoints& reading)
 {
-			
-	const Matrix descRef(ref.getDescriptorByName(name));	
+
+	const Matrix descRef(ref.getDescriptorByName(name));
 	const Matrix descRead(reading.getDescriptorByName(name));
 
 	if(descRef.rows() != 0 && descRead.rows() != 0)
@@ -603,12 +607,12 @@ void InspectorsImpl<T>::AbstractVTKInspector::buildVectorStream(std::ostream& st
 
 template<typename T>
 void InspectorsImpl<T>::AbstractVTKInspector::buildTensorStream(std::ostream& stream,
-	const std::string& name,
-	const DataPoints& ref, 
-	const DataPoints& reading)
+																const std::string& name,
+																const DataPoints& ref,
+																const DataPoints& reading)
 {
-			
-	const Matrix descRef(ref.getDescriptorByName(name));	
+
+	const Matrix descRef(ref.getDescriptorByName(name));
 	const Matrix descRead(reading.getDescriptorByName(name));
 
 	if(descRef.rows() != 0 && descRead.rows() != 0)
@@ -631,7 +635,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::buildTimeStream(std::ostream& stre
 	// if we still need that. FP
 	if (!cloud.timeExists(name))
 		return;
-		
+
 	const BOOST_AUTO(time, cloud.getTimeViewByName(name));
 	assert(time.rows() == 1);
 
@@ -646,7 +650,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::buildTimeStream(std::ostream& stre
 		high32(0, i) = (uint32_t)(time(0, i) >> 32);
 		low32(0, i) = (uint32_t)time(0, i);
 	}
-	
+
 	stream << "SCALARS" << " " << name << "_splitTime_high32" << " " << "unsigned_int" << "\n";
 	stream << "LOOKUP_TABLE default\n";
 
@@ -664,9 +668,9 @@ void InspectorsImpl<T>::AbstractVTKInspector::buildTimeStream(std::ostream& stre
 
 template<typename T>
 typename PointMatcher<T>::Matrix InspectorsImpl<T>::AbstractVTKInspector::padWithZeros(
-	const Matrix m,
-	const int expectedRow,
-	const int expectedCols)
+		const Matrix m,
+		const int expectedRow,
+		const int expectedCols)
 {
 	assert(m.cols() <= expectedCols || m.rows() <= expectedRow);
 	if(m.cols() == expectedCols && m.rows() == expectedRow)
@@ -675,7 +679,7 @@ typename PointMatcher<T>::Matrix InspectorsImpl<T>::AbstractVTKInspector::padWit
 	}
 	else
 	{
-		Matrix tmp = Matrix::Zero(expectedRow, expectedCols); 
+		Matrix tmp = Matrix::Zero(expectedRow, expectedCols);
 		tmp.topLeftCorner(m.rows(), m.cols()) = m;
 		return tmp;
 	}
@@ -684,9 +688,9 @@ typename PointMatcher<T>::Matrix InspectorsImpl<T>::AbstractVTKInspector::padWit
 
 template<typename T>
 typename PointMatcher<T>::Matrix InspectorsImpl<T>::AbstractVTKInspector::padWithOnes(
-	const Matrix m,
-	const int expectedRow,
-	const int expectedCols)
+		const Matrix m,
+		const int expectedRow,
+		const int expectedCols)
 {
 	assert(m.cols() <= expectedCols || m.rows() <= expectedRow);
 	if(m.cols() == expectedCols && m.rows() == expectedRow)
@@ -695,7 +699,7 @@ typename PointMatcher<T>::Matrix InspectorsImpl<T>::AbstractVTKInspector::padWit
 	}
 	else
 	{
-		Matrix tmp = Matrix::Ones(expectedRow, expectedCols); 
+		Matrix tmp = Matrix::Ones(expectedRow, expectedCols);
 		tmp.topLeftCorner(m.rows(), m.cols()) = m;
 		return tmp;
 	}
@@ -713,12 +717,12 @@ void InspectorsImpl<T>::AbstractVTKInspector::finish(const size_t iterationCount
 
 template<typename T>
 InspectorsImpl<T>::VTKFileInspector::VTKFileInspector(const Parameters& params):
-	AbstractVTKInspector("VTKFileInspector", VTKFileInspector::availableParameters(), params),
-	baseFileName(Parametrizable::get<string>("baseFileName")),
-	bDumpIterationInfo(Parametrizable::get<bool>("dumpIterationInfo")),
-	bDumpDataLinks(Parametrizable::get<bool>("dumpDataLinks")),
-	bDumpReading(Parametrizable::get<bool>("dumpReading")),
-	bDumpReference(Parametrizable::get<bool>("dumpReference"))
+		AbstractVTKInspector("VTKFileInspector", VTKFileInspector::availableParameters(), params),
+		baseFileName(Parametrizable::get<string>("baseFileName")),
+		bDumpIterationInfo(Parametrizable::get<bool>("dumpIterationInfo")),
+		bDumpDataLinks(Parametrizable::get<bool>("dumpDataLinks")),
+		bDumpReading(Parametrizable::get<bool>("dumpReading")),
+		bDumpReference(Parametrizable::get<bool>("dumpReference"))
 {
 }
 
@@ -727,7 +731,7 @@ void InspectorsImpl<T>::VTKFileInspector::init()
 {
 
 	if (!bDumpIterationInfo) return;
- 
+
 	ostringstream oss;
 	oss << baseFileName << "-iterationInfo.csv";
 	//std::cerr << "writing to " << oss.str() << std::endl;
@@ -736,7 +740,7 @@ void InspectorsImpl<T>::VTKFileInspector::init()
 	this->streamIter = new ofstream(oss.str().c_str());
 	if (this->streamIter->fail())
 		throw std::runtime_error("Couldn't open the file \"" + oss.str() + "\". Check if directory exist.");
-	
+
 }
 
 template<typename T>

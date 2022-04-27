@@ -357,6 +357,7 @@ set(POINTMATCHER_SRC
 	pointmatcher/DataPointsFilters/Sphericality.cpp
 	pointmatcher/DataPointsFilters/NoiseSkew.cpp
 	pointmatcher/DataPointsFilters/SurfaceCurvature.cpp
+	pointmatcher/DataPointsFilters/DeskewingUncertainty.cpp
 )
 
 
@@ -367,6 +368,10 @@ file(GLOB_RECURSE POINTMATCHER_HEADERS "pointmatcher/*.h")
 # No need to distinguish between operating systems while building targets
 
 add_library(pointmatcher ${POINTMATCHER_SRC} ${POINTMATCHER_HEADERS} )
+
+add_executable(main main.cpp)
+
+target_link_libraries(main pointmatcher)
 
 target_include_directories(pointmatcher PUBLIC
   $<INSTALL_INTERFACE:>
