@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ErrorMinimizers/PointToPointWithCov.h"
 #include "ErrorMinimizers/PointToPointSimilarity.h"
 #include "ErrorMinimizers/Identity.h"
+#include "ErrorMinimizers/PointToGaussian.h"
 
 template<typename T>
 struct ErrorMinimizersImpl
@@ -53,6 +54,7 @@ struct ErrorMinimizersImpl
 	typedef ::PointToPointWithCovErrorMinimizer<T> PointToPointWithCovErrorMinimizer;
 	typedef ::PointToPointSimilarityErrorMinimizer<T> PointToPointSimilarityErrorMinimizer;
 	typedef ::IdentityErrorMinimizer<T> IdentityErrorMinimizer;
+	typedef ::PointToGaussianErrorMinimizer<T> PointToGaussianErrorMinimizer;
 }; // ErrorMinimizersImpl
 
 #endif // __POINTMATCHER_ERRORMINIMIZER_H

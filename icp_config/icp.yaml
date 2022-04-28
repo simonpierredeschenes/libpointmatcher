@@ -1,0 +1,44 @@
+matcher:
+  KDTreeMatcher:
+    knn: 3
+    maxDist: 2.0
+    epsilon: 1
+
+#outlierFilters:
+## - VarTrimmedDistOutlierFilter:
+##       minRatio: 0.3
+##       maxRatio: 1.0
+##       lambda: 2.5
+# # - RobustOutlierFilter:
+# #       tuning: 2.0
+# #       robustFct: "cauchy"
+# #       scaleEstimator: "mad"
+# - TrimmedDistOutlierFilter:
+#    ratio: 0.7
+
+errorMinimizer:
+  PointToGaussianMinimizer:
+
+
+transformationCheckers:
+  - DifferentialTransformationChecker:
+      minDiffRotErr: 0.001
+      minDiffTransErr: 0.01
+      smoothLength: 2
+  - CounterTransformationChecker:
+      maxIterationCount: 40
+  - BoundTransformationChecker:
+      maxRotationNorm: 1000000.1
+      maxTranslationNorm: 15000.00
+
+inspector:
+  NullInspector
+#   VTKFileInspector:NullInspector
+#     baseFileName: "/home/simon/Desktop/doctorat/publi_collision_recovery/debug/test"
+#     dumpDataLinks: "1"
+#     dumpReading: "1"
+#     dumpReference: "1"
+#     writeBinary: "1"
+
+logger:
+  NullLogger
