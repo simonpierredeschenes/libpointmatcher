@@ -82,10 +82,10 @@ int main(int argc, char** argv)
 
 //    std::shared_ptr<PM::Parametrizable> matcher_params;
     PM::Parameters matcher_params;
-    matcher_params["maxDist"] = "100.0";
+    matcher_params["maxDist"] = "inf";
     matcher_params["knn"] = "10";
     std::shared_ptr<PM::Matcher> matcher = PM::get().MatcherRegistrar.create("KDTreeMatcher", matcher_params);
-    matcher->init(reference);
+    matcher->init(reading);
     icp.matcher = matcher;
     std::shared_ptr<PM::Inspector> nullInspector = PM::get().InspectorRegistrar.create("NullInspector");
     icp.inspector = nullInspector;
@@ -94,11 +94,12 @@ int main(int argc, char** argv)
     std::shared_ptr<PM::Transformation> transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
     icp.transformations.push_back(transformation);
 
-    std::shared_ptr<PM::DataPointsFilter> surfaceNormalFilter = PM::get().DataPointsFilterRegistrar.create("SurfaceNormalDataPointsFilter");
-    surfaceNormalFilter->filter(reference);
+//    std::shared_ptr<PM::DataPointsFilter> surfaceNormalFilter = PM::get().DataPointsFilterRegistrar.create("SurfaceNormalDataPointsFilter");
+//    surfaceNormalFilter->filter(reference);
 
-    PM::TransformationParameters optimalTransform = icp(reading, reference);
-    icp.transformations.apply(reading, optimalTransform);
+//    PM::TransformationParameters optimalTransform = icp(reading, reference);
+    PM::TransformationParameters optimalTransform = icp(reference, reading);
+    icp.transformations.apply(reference, optimalTransform);
 
     reading.save("/home/dominic/repos/tests_point_to_gaussian/toy_reading.vtk");
     reference.save("/home/dominic/repos/tests_point_to_gaussian/toy_reference.vtk");

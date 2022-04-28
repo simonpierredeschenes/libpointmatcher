@@ -99,16 +99,16 @@ typename PointToGaussianErrorMinimizer<T>::ErrorElements PointToGaussianErrorMin
 //        mPts.reference.allocateDescriptors(cloudLabels);
 ////		mPts.reference.getDescriptorViewByName("normals").setZero();
 //    }
-    View normals = mPts.reading.getDescriptorViewByName("normals");
+    View normals = mPts.reference.getDescriptorViewByName("normals");
 //    ConstView eigVectors = mPts_const.reference.getDescriptorViewByName("eigVectors");
 //    ConstView eigValues = mPts_const.reference.getDescriptorViewByName("eigValues");
     // fetch covariance and compute eigen vectors, eigen values instead
-    Matrix covariancesSerialized = mPts.reading.getDescriptorViewByName("covariance");
+    Matrix covariancesSerialized = mPts.reference.getDescriptorViewByName("covariance");
 
     if ((eigValues.array() < 0.0).any()) {
         throw ConvergenceError("PointToGaussian(): Some of the eigen values are negative.");
     }
-    for (long i = 0; i < mPts_const.reading.features.cols(); ++i) {
+    for (long i = 0; i < mPts_const.reference.features.cols(); ++i) {
         mPts.reading.features.block(0, dim * i, dim + 1, dim) = mPts_const.reading.features.col(i).replicate(1, dim);
         mPts.reference.features.block(0, dim * i, dim + 1, dim) = mPts_const.reference.features.col(i).replicate(1, dim);
 
