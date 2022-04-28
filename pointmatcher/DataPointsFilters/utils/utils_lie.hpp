@@ -168,6 +168,6 @@ Gaussian<T> addMotion(const Gaussian<T>& previousPoseGaussian, const Gaussian<T>
 	typename PointMatcher<T>::Matrix previousPoseInverseJacobian = jacobianInverse_se3<T>(previousPoseGaussian.mean);
 	Gaussian<T> poseGaussian;
 	poseGaussian.mean = previousPoseGaussian.mean + previousPoseInverseJacobian * motionMean_se3 * deltaTime;
-	poseGaussian.covariance = previousPoseGaussian.covariance + previousPoseInverseJacobian * motionCovariance_se3 * previousPoseInverseJacobian.transpose() * deltaTime * deltaTime;
+	poseGaussian.covariance = previousPoseGaussian.covariance + previousPoseInverseJacobian * motionCovariance_se3 * previousPoseInverseJacobian.transpose() * deltaTime;
 	return poseGaussian;
 }
