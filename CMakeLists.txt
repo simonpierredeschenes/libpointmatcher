@@ -370,9 +370,9 @@ file(GLOB_RECURSE POINTMATCHER_HEADERS "pointmatcher/*.h")
 
 add_library(pointmatcher ${POINTMATCHER_SRC} ${POINTMATCHER_HEADERS} )
 
-add_executable(main main.cpp)
-
-target_link_libraries(main pointmatcher)
+#add_executable(main main.cpp)
+#
+#target_link_libraries(main pointmatcher)
 
 target_include_directories(pointmatcher PUBLIC
   $<INSTALL_INTERFACE:>
