@@ -4,7 +4,7 @@
 #include "DataPointsFilters/utils/utils_lie.hpp"
 
 template<typename T>
-struct DeskewingUncertaintyDataPointsFilter: public PointMatcher<T>::DataPointsFilter
+struct DeskewingUncertaintyDataPointsFilter : public PointMatcher<T>::DataPointsFilter
 {
 	typedef PointMatcher<T> PM;
 	typedef PointMatcherSupport::Parametrizable Parametrizable;
@@ -19,8 +19,8 @@ struct DeskewingUncertaintyDataPointsFilter: public PointMatcher<T>::DataPointsF
 	inline static const std::string description()
 	{
 		return "Adds a 9D descriptor named <covariance> that represents the covariance of each point, based on the de-skewing uncertainty.\n\n"
-			   "Required descriptors: normals (for skew model no. 2) curvatures (for skew models no. 3 and 5), rings (for skew model no. 2 with 3D point clouds).\n"
-			   "Required times: stamps (for skew models no. 0, 1, 2, 3 and 4).\n"
+			   "Required descriptors: none.\n"
+			   "Required times: stamps.\n"
 			   "Produced descriptors:  covariance.\n"
 			   "Sensor assumed to be at the origin: yes.\n"
 			   "Altered descriptors:  none.\n"
@@ -30,13 +30,13 @@ struct DeskewingUncertaintyDataPointsFilter: public PointMatcher<T>::DataPointsF
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
-				{ "linearSpeedsX",              "Comma-separated linear speeds along the X axis during the scan",         "0" },
-				{ "linearSpeedsY",              "Comma-separated linear speeds along the Y axis during the scan",         "0" },
-				{ "linearSpeedsZ",              "Comma-separated linear speeds along the Z axis during the scan",         "0" },
-				{ "angularSpeedsX",             "Comma-separated angular speeds along the X axis during the scan",        "0" },
-				{ "angularSpeedsY",             "Comma-separated angular speeds along the Y axis during the scan",        "0" },
-				{ "angularSpeedsZ",             "Comma-separated angular speeds along the Z axis during the scan",        "0" },
-				{ "measureTimes",               "Times at which inertial measurements were acquired",                     "0" },
+				{"linearSpeedsX",  "Comma-separated linear speeds along the X axis during the scan",  "0"},
+				{"linearSpeedsY",  "Comma-separated linear speeds along the Y axis during the scan",  "0"},
+				{"linearSpeedsZ",  "Comma-separated linear speeds along the Z axis during the scan",  "0"},
+				{"angularSpeedsX", "Comma-separated angular speeds along the X axis during the scan", "0"},
+				{"angularSpeedsY", "Comma-separated angular speeds along the Y axis during the scan", "0"},
+				{"angularSpeedsZ", "Comma-separated angular speeds along the Z axis during the scan", "0"},
+				{"measureTimes",   "Times at which inertial measurements were acquired",              "0"},
 		};
 	}
 
@@ -57,6 +57,4 @@ private:
 	template<typename U>
 	std::vector<int> computeOrdering(const Eigen::Matrix<U, 1, Eigen::Dynamic>& elements);
 	void applyOrdering(const std::vector<int>& ordering, Eigen::Matrix<int, 1, Eigen::Dynamic>& idTable, DataPoints& dataPoints);
-
-	const T REFERENCE_CURVATURE = 40.0;
 };
