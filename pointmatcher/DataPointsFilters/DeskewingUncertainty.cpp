@@ -207,6 +207,13 @@ void DeskewingUncertaintyDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 		}
 		case 2:
 		{
+			if(!cloud.descriptorExists("normals"))
+			{
+				throw InvalidField("DeskewingUncertaintyDataPointsFilter: Error, cannot find normals in descriptors.");
+			}
+
+
+
 			break;
 		}
 		case 3:
