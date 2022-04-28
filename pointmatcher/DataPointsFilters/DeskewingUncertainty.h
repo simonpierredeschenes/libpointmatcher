@@ -30,7 +30,6 @@ struct DeskewingUncertaintyDataPointsFilter: public PointMatcher<T>::DataPointsF
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
-				{ "skewModel",                  "Skew model used for computing uncertainty. Choices: 0=Model based on time only, 1=Model based on speed and acceleration noises, 2=Model based on speed and acceleration noises and on incidence angle, 3=Model based on \\cite{Al-Nuaimi2016}", "0",    "0",    "3", &Parametrizable::Comp < unsigned > },
 				{ "linearSpeedsX",              "Comma-separated linear speeds along the X axis during the scan",         "0" },
 				{ "linearSpeedsY",              "Comma-separated linear speeds along the Y axis during the scan",         "0" },
 				{ "linearSpeedsZ",              "Comma-separated linear speeds along the Z axis during the scan",         "0" },
@@ -47,7 +46,6 @@ struct DeskewingUncertaintyDataPointsFilter: public PointMatcher<T>::DataPointsF
 
 	virtual void inPlaceFilter(DataPoints& value);
 
-	const unsigned skewModel;
 	const std::vector<Vector> linearVelocities;
 	const std::vector<Vector> angularVelocities;
 	std::vector<Gaussian<T>> motionGaussians;
