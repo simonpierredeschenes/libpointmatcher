@@ -1,4 +1,3 @@
-#include <iostream>
 #include <pointmatcher/PointMatcher.h>
 
 typedef PointMatcher<float> PM;
@@ -9,7 +8,7 @@ typename PM::DataPoints generateReading()
     for(unsigned int i = 0; i < features.cols(); ++i)
     {
         double angle = (2.0 * M_PI * i / (features.cols() - 1)) - M_PI/8;
-        features.col(i) = (PM::Vector(4) << std::cos(angle) * 3, std::sin(angle) * 3, i / 10, 1).finished();
+        features.col(i) = (PM::Vector(4) << std::cos(angle) * 3, std::sin(angle) * 3, i / 10.f, 1).finished();
     }
     PM::DataPoints::Labels featureLabels;
     featureLabels.push_back(PM::DataPoints::Label("x", 1));
@@ -57,14 +56,13 @@ typename PM::DataPoints generateReference()
     for(unsigned int i = 0; i < features.cols(); ++i)
     {
         double angle = 2.0 * M_PI * i / (features.cols() - 1);
-        features.col(i) = (PM::Vector(4) << std::cos(angle) * 2, std::sin(angle) * 2, i / 10, 1).finished();
+        features.col(i) = (PM::Vector(4) << std::cos(angle) * 2, std::sin(angle) * 2, i / 10.f, 1).finished();
     }
     PM::DataPoints::Labels featureLabels;
     featureLabels.push_back(PM::DataPoints::Label("x", 1));
     featureLabels.push_back(PM::DataPoints::Label("y", 1));
     featureLabels.push_back(PM::DataPoints::Label("z", 1));
     featureLabels.push_back(PM::DataPoints::Label("pad", 1));
-
 
 
     return {features, featureLabels};
@@ -76,33 +74,28 @@ int main(int argc, char** argv)
     PM::DataPoints reference = generateReference();
 
     PM::ICP icp;
-    std::shared_ptr<PM::ErrorMinimizer> pointToGaussianMinimizer = PM::get().ErrorMinimizerRegistrar.create("PointToGaussianErrorMinimizer");
-    icp.errorMinimizer = pointToGaussianMinimizer;
+	std::shared_ptr<PM::Transformation> transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
+	icp.transformations.push_back(transformation);
+	PM::Parameters params;
+	params["maxDist"] = "inf";
+	params["knn"] = "10";
+	std::shared_ptr<PM::Matcher> matcher = PM::get().MatcherRegistrar.create("KDTreeMatcher", params);
+	matcher->init(reading);
+	icp.matcher = matcher;
+    std::shared_ptr<PM::ErrorMinimizer> gaussianToPointMinimizer = PM::get().ErrorMinimizerRegistrar.create("GaussianToPointErrorMinimizer");
+    icp.errorMinimizer = gaussianToPointMinimizer;
+	params.clear();
+	params["maxIterationCount"] = "40";
+	std::shared_ptr<PM::TransformationChecker> checker = PM::get().TransformationCheckerRegistrar.create("CounterTransformationChecker", params);
+	icp.transformationCheckers.push_back(checker);
+	std::shared_ptr<PM::Inspector> nullInspector = PM::get().InspectorRegistrar.create("NullInspector");
+	icp.inspector = nullInspector;
 
-
-//    std::shared_ptr<PM::Parametrizable> matcher_params;
-    PM::Parameters matcher_params;
-    matcher_params["maxDist"] = "inf";
-    matcher_params["knn"] = "10";
-    std::shared_ptr<PM::Matcher> matcher = PM::get().MatcherRegistrar.create("KDTreeMatcher", matcher_params);
-    matcher->init(reading);
-    icp.matcher = matcher;
-    std::shared_ptr<PM::Inspector> nullInspector = PM::get().InspectorRegistrar.create("NullInspector");
-    icp.inspector = nullInspector;
-    std::shared_ptr<PM::TransformationChecker> checker = PM::get().TransformationCheckerRegistrar.create("CounterTransformationChecker");
-    icp.transformationCheckers.push_back(checker);
-    std::shared_ptr<PM::Transformation> transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
-    icp.transformations.push_back(transformation);
-
-//    std::shared_ptr<PM::DataPointsFilter> surfaceNormalFilter = PM::get().DataPointsFilterRegistrar.create("SurfaceNormalDataPointsFilter");
-//    surfaceNormalFilter->filter(reference);
-
-//    PM::TransformationParameters optimalTransform = icp(reading, reference);
-    PM::TransformationParameters optimalTransform = icp(reference, reading);
+    PM::TransformationParameters optimalTransform = icp(reading, reference);
     icp.transformations.apply(reference, optimalTransform);
 
-    reading.save("/home/dominic/repos/tests_point_to_gaussian/toy_reading.vtk");
-    reference.save("/home/dominic/repos/tests_point_to_gaussian/toy_reference.vtk");
+    reading.save("/home/norlab/Desktop/toy_reading.vtk");
+    reference.save("/home/norlab/Desktop/toy_reference.vtk");
 
 	return 0;
 }
