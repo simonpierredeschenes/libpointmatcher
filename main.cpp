@@ -35,7 +35,6 @@ typename PM::DataPoints generateReading()
     PM::DataPoints cloud(features, featureLabels, descriptors, descriptorLabels, times, timeLabels);
 
     PM::Parameters params;
-    params["skewModel"] = "1";
     params["linearSpeedsX"] = "1";
     params["linearSpeedsY"] = "1";
     params["linearSpeedsZ"] = "1";
