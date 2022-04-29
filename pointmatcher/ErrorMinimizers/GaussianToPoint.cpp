@@ -131,8 +131,6 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 template<typename T>
 typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer<T>::compute_in_place(ErrorElements& mPts)
 {
-	const int dim = mPts.reading.features.rows();
-
 	const Matrix& covariances = mPts.reading.getDescriptorViewByName("covariance");
 	Matrix eigenValues = Matrix::Zero(3, covariances.cols());
 	Matrix eigenVectors = Matrix::Zero(9, covariances.cols());
@@ -172,7 +170,7 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 			F.row(j + cross.rows()) = eigenVector.row(j);
 		}
 
-		// scale by eigen values
+		// scale by inverse of eigen values
 		wF = wF.array().rowwise() * eigenValues.row(i).cwiseInverse().array();
 
 		// Unadjust covariance A += wF * F'
@@ -188,7 +186,7 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 			dotProd += (deltas.row(j).array() * eigenVector.row(j).array()).matrix();
 		}
 
-		// b += -(wF' * dot)
+		// b += -(wF * dot')
 		b += -(wF * dotProd.transpose());
 	}
 
@@ -207,7 +205,7 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 		// Degenerate situation. This can happen when the source and reading clouds
 		// are identical, and then b and x above are 0, and the rotation matrix cannot
 		// be determined, it comes out full of NaNs. The correct rotation is the identity.
-		mOut.block(0, 0, dim - 1, dim - 1) = Matrix::Identity(dim - 1, dim - 1);
+		mOut.block(0, 0, 3, 3) = Matrix::Identity(3, 3);
 	}
 
 	return mOut;
@@ -217,9 +215,7 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 template<typename T>
 T GaussianToPointErrorMinimizer<T>::computeResidualError(ErrorElements mPts)
 {
-	std::cout << "1" << std::endl;
 	const Matrix& covariances = mPts.reading.getDescriptorViewByName("covariance");
-	std::cout << "2" << std::endl;
 	Matrix eigenValues = Matrix::Zero(3, covariances.cols());
 	Matrix eigenVectors = Matrix::Zero(9, covariances.cols());
 	for(unsigned int i = 0; i < covariances.cols(); ++i)
@@ -247,7 +243,7 @@ T GaussianToPointErrorMinimizer<T>::computeResidualError(ErrorElements mPts)
 		{
 			dotProd += (deltas.row(j).array() * eigenVector.row(j).array()).matrix();
 		}
-		// residual = w*(d.n)² * eigenValue
+		// residual = w*(d.n)² / eigenValue
 		dotProd = (mPts.weights.row(0).array() * dotProd.array().square() * eigenValues.row(i).cwiseInverse().array()).matrix();
 
 		// add the sum of the norm of each dot product
@@ -282,7 +278,6 @@ T GaussianToPointErrorMinimizer<T>::getOverlap() const
 	const bool hasReferenceDensity = this->lastErrorElements.reference.descriptorExists("densities");
 
 	const int nbPoints = this->lastErrorElements.reading.features.cols();
-	const int dim = this->lastErrorElements.reading.features.rows();
 
 	// basix safety check
 	if(nbPoints == 0)
@@ -331,7 +326,7 @@ T GaussianToPointErrorMinimizer<T>::getOverlap() const
 	}
 
 
-	const Vector dists = (this->lastErrorElements.reading.features.topRows(dim-1) - this->lastErrorElements.reference.features.topRows(dim-1)).colwise().norm();
+	const Vector dists = (this->lastErrorElements.reading.features.topRows(3) - this->lastErrorElements.reference.features.topRows(3)).colwise().norm();
 
 
 	// here we can only loop through a list of links, but we are interested in whether or not
