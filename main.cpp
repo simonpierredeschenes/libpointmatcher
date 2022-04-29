@@ -43,10 +43,7 @@ typename PM::DataPoints generateReading()
 	params["angularSpeedsZ"] = "0";
 	params["measureTimes"] = "0";
 	std::shared_ptr<PM::DataPointsFilter> deskewingFilter = PM::get().DataPointsFilterRegistrar.create("DeskewingUncertaintyDataPointsFilter", params);
-	std::shared_ptr<PM::DataPointsFilter> surfaceNormalFilter = PM::get().DataPointsFilterRegistrar.create("SurfaceNormalDataPointsFilter");
-	surfaceNormalFilter->inPlaceFilter(cloud);
 	return deskewingFilter->filter(cloud);
-
 }
 
 typename PM::DataPoints generateReference()
@@ -62,8 +59,6 @@ typename PM::DataPoints generateReference()
 	featureLabels.push_back(PM::DataPoints::Label("y", 1));
 	featureLabels.push_back(PM::DataPoints::Label("z", 1));
 	featureLabels.push_back(PM::DataPoints::Label("pad", 1));
-
-
 	return {features, featureLabels};
 }
 

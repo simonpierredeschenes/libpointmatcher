@@ -150,8 +150,7 @@ void DeskewingUncertaintyDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 	int latestMeasureIndex = 0;
 	Gaussian<T> latestPoseGaussian;
 	latestPoseGaussian.mean = Vector::Zero(6);
-	latestPoseGaussian.covariance = Matrix::Zero(6, 6);
-	latestPoseGaussian.covariance.topLeftCorner(3, 3) = Matrix::Identity(3, 3) * 0.0001;
+	latestPoseGaussian.covariance = Matrix::Identity(6, 6) * 0.0001;
 	Matrix pointCovariances = Matrix::Zero(9, cloud.getNbPoints());
 	for(unsigned int i = 0; i < orderedDataPoints.getNbPoints(); ++i)
 	{

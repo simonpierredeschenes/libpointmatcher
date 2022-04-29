@@ -1,14 +1,11 @@
 // kate: replace-tabs off; indent-width 4; indent-mode normal
 // vim: ts=4:sw=4:noexpandtab
 /*
-
 Copyright (c) 2010--2012,
 François Pomerleau and Stephane Magnenat, ASL, ETHZ, Switzerland
 You can contact the authors at <f dot pomerleau at gmail dot com> and
 <stephane at magnenat dot net>
-
 All rights reserved.
-
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
     * Redistributions of source code must retain the above copyright
@@ -19,7 +16,6 @@ modification, are permitted provided that the following conditions are met:
     * Neither the name of the <organization> nor the
       names of its contributors may be used to endorse or promote products
       derived from this software without specific prior written permission.
-
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,10 +26,7 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 */
-
-#include <iostream>
 
 #include <Eigen/QR>
 #include <Eigen/Eigenvalues>
@@ -66,7 +59,8 @@ GaussianToPointErrorMinimizer<T>::GaussianToPointErrorMinimizer(const Parameters
 
 
 template<typename T, typename MatrixA, typename Vector>
-void solvePossiblyUnderdeterminedLinearSystem(const MatrixA& A, const Vector & b, Vector & x) {
+void solvePossiblyUnderdeterminedLinearSystem(const MatrixA& A, const Vector& b, Vector& x)
+{
 	assert(A.cols() == A.rows());
 	assert(b.cols() == 1);
 	assert(b.rows() == A.rows());
@@ -76,7 +70,7 @@ void solvePossiblyUnderdeterminedLinearSystem(const MatrixA& A, const Vector & b
 	typedef typename PointMatcher<T>::Matrix Matrix;
 
 	BOOST_AUTO(Aqr, A.fullPivHouseholderQr());
-	if (!Aqr.isInvertible())
+	if(!Aqr.isInvertible())
 	{
 		// Solve reduced problem R1 x = Q1^T b instead of QR x = b, where Q = [Q1 Q2] and R = [ R1 ; R2 ] such that ||R2|| is small (or zero) and therefore A = QR ~= Q1 * R1
 		const int rank = Aqr.rank();
@@ -87,10 +81,13 @@ void solvePossiblyUnderdeterminedLinearSystem(const MatrixA& A, const Vector & b
 		const bool findMinimalNormSolution = true; // TODO is that what we want?
 
 		// The under-determined system R1 x = Q1^T b is made unique ..
-		if(findMinimalNormSolution){
+		if(findMinimalNormSolution)
+		{
 			// by getting the solution of smallest norm (x = R1^T * (R1 * R1^T)^-1 Q1^T b.
 			x = R1.template triangularView<Eigen::Upper>().transpose() * (R1 * R1.transpose()).llt().solve(Q1t * b);
-		} else {
+		}
+		else
+		{
 			// by solving the simplest problem that yields fewest nonzero components in x
 			x.block(0, 0, rank, 1) = R1.block(0, 0, rank, rank).template triangularView<Eigen::Upper>().solve(Q1t * b);
 			x.block(rank, 0, rows - rank, 1).setZero();
@@ -98,23 +95,29 @@ void solvePossiblyUnderdeterminedLinearSystem(const MatrixA& A, const Vector & b
 
 		x = Aqr.colsPermutation() * x;
 
-		BOOST_AUTO(ax , (A * x).eval());
-		if (!b.isApprox(ax, 1e-5)) {
-			LOG_INFO_STREAM("PointMatcher::icp - encountered almost singular matrix while minimizing point to plane distance. QR solution was too inaccurate. Trying more accurate approach using double precision SVD.");
-			x = A.template cast<double>().jacobiSvd(ComputeThinU | ComputeThinV).solve(b.template cast<double>()).template cast<T>();
+		BOOST_AUTO(ax, (A * x).eval());
+		if(!b.isApprox(ax, 1e-5))
+		{
+			LOG_INFO_STREAM(
+					"PointMatcher::icp - encountered almost singular matrix while minimizing point to plane distance. QR solution was too inaccurate. Trying more accurate approach using double precision SVD.");
+			x = A.template cast<double>().jacobiSvd(ComputeThinU | ComputeThinV).solve(b.template cast<double>()).
+					template cast<T>();
 			ax = A * x;
 
-			if((b - ax).norm() > 1e-5 * std::max(A.norm() * x.norm(), b.norm())){
-				LOG_WARNING_STREAM("PointMatcher::icp - encountered numerically singular matrix while minimizing point to plane distance and the current workaround remained inaccurate."
-										   << " b=" << b.transpose()
-										   << " !~ A * x=" << (ax).transpose().eval()
-										   << ": ||b- ax||=" << (b - ax).norm()
-										   << ", ||b||=" << b.norm()
-										   << ", ||ax||=" << ax.norm());
+			if((b - ax).norm() > 1e-5 * std::max(A.norm() * x.norm(), b.norm()))
+			{
+				LOG_WARNING_STREAM(
+						"PointMatcher::icp - encountered numerically singular matrix while minimizing point to plane distance and the current workaround remained inaccurate."
+								<< " b=" << b.transpose()
+								<< " !~ A * x=" << (ax).transpose().eval()
+								<< ": ||b- ax||=" << (b - ax).norm()
+								<< ", ||b||=" << b.norm()
+								<< ", ||ax||=" << ax.norm());
 			}
 		}
 	}
-	else {
+	else
+	{
 		// Cholesky decomposition
 		x = A.llt().solve(b);
 	}
@@ -285,10 +288,10 @@ T GaussianToPointErrorMinimizer<T>::getOverlap() const
 		throw std::runtime_error("Error, last error element empty. Error minimizer needs to be called at least once before using this method.");
 	}
 
-	Eigen::Array<T, 1, Eigen::Dynamic>  uncertainties(nbPoints);
+	Eigen::Array<T, 1, Eigen::Dynamic> uncertainties(nbPoints);
 
 	// optimal case
-	if (hasReadingNoise && hasReferenceNoise && hasReferenceDensity)
+	if(hasReadingNoise && hasReferenceNoise && hasReferenceDensity)
 	{
 		// find median density
 
@@ -300,7 +303,7 @@ T GaussianToPointErrorMinimizer<T>::getOverlap() const
 
 		// extract median value
 		const T medianDensity = values[values.size() * 0.5];
-		const T medianRadius = 1.0/pow(medianDensity, 1/3.0);
+		const T medianRadius = 1.0 / pow(medianDensity, 1 / 3.0);
 
 		uncertainties = (medianRadius +
 						 this->lastErrorElements.reading.getDescriptorViewByName("simpleSensorNoise").array() +
@@ -334,7 +337,7 @@ T GaussianToPointErrorMinimizer<T>::getOverlap() const
 	int count = 0;
 	int nbUniquePoint = 1;
 	Vector lastValidPoint = this->lastErrorElements.reading.features.col(0) * 2.;
-	for(int i=0; i < nbPoints; i++)
+	for(int i = 0; i < nbPoints; i++)
 	{
 		const Vector point = this->lastErrorElements.reading.features.col(i);
 
@@ -345,7 +348,7 @@ T GaussianToPointErrorMinimizer<T>::getOverlap() const
 			// but this doesn't make sense
 
 
-			if(PointMatcherSupport::anyabs(dists(i, 0)) < (uncertainties(0,i)))
+			if(PointMatcherSupport::anyabs(dists(i, 0)) < (uncertainties(0, i)))
 			{
 				lastValidPoint = point;
 				count++;
@@ -355,14 +358,14 @@ T GaussianToPointErrorMinimizer<T>::getOverlap() const
 		// Count unique points
 		if(i > 0)
 		{
-			if(point != this->lastErrorElements.reading.features.col(i-1))
+			if(point != this->lastErrorElements.reading.features.col(i - 1))
 				nbUniquePoint++;
 		}
 
 	}
 	//cout << "count: " << count << ", nbUniquePoint: " << nbUniquePoint << ", this->lastErrorElements.nbRejectedPoints: " << this->lastErrorElements.nbRejectedPoints << endl;
 
-	return (T)count/(T)(nbUniquePoint + this->lastErrorElements.nbRejectedPoints);
+	return (T) count / (T) (nbUniquePoint + this->lastErrorElements.nbRejectedPoints);
 }
 
 template struct GaussianToPointErrorMinimizer<float>;
