@@ -106,12 +106,6 @@ DeskewingUncertaintyDataPointsFilter<T>::DeskewingUncertaintyDataPointsFilter(co
 		motionGaussian.mean.head(3) = linearVelocities[i];
 		motionGaussian.mean.tail(3) = angularVelocities[i];
 		motionGaussian.covariance = Matrix::Zero(6, 6);
-//		motionGaussian.covariance(0, 0) = linearVelocities[i](0) * linearVelocities[i](0);
-//		motionGaussian.covariance(1, 1) = linearVelocities[i](1) * linearVelocities[i](1);
-//		motionGaussian.covariance(2, 2) = linearVelocities[i](2) * linearVelocities[i](2);
-//		motionGaussian.covariance(3, 3) = angularVelocities[i](0) * angularVelocities[i](0);
-//		motionGaussian.covariance(4, 4) = angularVelocities[i](1) * angularVelocities[i](1);
-//		motionGaussian.covariance(5, 5) = angularVelocities[i](2) * angularVelocities[i](2);
 		motionGaussian.covariance(0, 0) = 0.004 * 0.004;
 		motionGaussian.covariance(1, 1) = 0.004 * 0.004;
 		motionGaussian.covariance(2, 2) = 0.004 * 0.004;
@@ -150,7 +144,7 @@ void DeskewingUncertaintyDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 	int latestMeasureIndex = 0;
 	Gaussian<T> latestPoseGaussian;
 	latestPoseGaussian.mean = Vector::Zero(6);
-	latestPoseGaussian.covariance = Matrix::Identity(6, 6) * 0.0001;
+	latestPoseGaussian.covariance = Matrix::Identity(6, 6) * 1e-6;
 	Matrix pointCovariances = Matrix::Zero(9, cloud.getNbPoints());
 	for(unsigned int i = 0; i < orderedDataPoints.getNbPoints(); ++i)
 	{

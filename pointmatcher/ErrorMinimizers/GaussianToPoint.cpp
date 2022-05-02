@@ -154,8 +154,8 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 	for(unsigned int i = 0; i < 3; ++i)
 	{
 		const Matrix& eigenVector = eigenVectors.middleRows(i * 3, 3);
-		// Compute cross product of cross = cross(reading X eigenVector)
-		Matrix cross = this->crossProduct(mPts.reading.features, eigenVector);
+		// Compute cross product of cross = cross(reference X eigenVector)
+		Matrix cross = this->crossProduct(mPts.reference.features, eigenVector);
 
 		// wF = [weights*cross, weights*eigenVector]
 		// F  = [cross, eigenVector]
@@ -173,13 +173,13 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 			F.row(j + cross.rows()) = eigenVector.row(j);
 		}
 
-		// scale by inverse of eigen values
-		wF = wF.array().rowwise() * eigenValues.row(i).cwiseInverse().array();
+		// scale by 1 / (1 + eigenValue)
+		wF = wF.array().rowwise() * (eigenValues.row(i).array() + 1).cwiseInverse();
 
 		// Unadjust covariance A += wF * F'
 		A += wF * F.transpose();
 
-		const Matrix deltas = mPts.reading.features - mPts.reference.features;
+		const Matrix deltas = mPts.reference.features - mPts.reading.features;
 
 		// dot product of dot = dot(deltas, eigenVector)
 		Matrix dotProd = Matrix::Zero(1, eigenVector.cols());
@@ -205,13 +205,13 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 	Matrix mOut = transform.matrix();
 	if(mOut != mOut)
 	{
-		// Degenerate situation. This can happen when the source and reading clouds
+		// Degenerate situation. This can happen when the source and reference clouds
 		// are identical, and then b and x above are 0, and the rotation matrix cannot
 		// be determined, it comes out full of NaNs. The correct rotation is the identity.
 		mOut.block(0, 0, 3, 3) = Matrix::Identity(3, 3);
 	}
 
-	return mOut;
+	return mOut.inverse();
 }
 
 
@@ -246,8 +246,8 @@ T GaussianToPointErrorMinimizer<T>::computeResidualError(ErrorElements mPts)
 		{
 			dotProd += (deltas.row(j).array() * eigenVector.row(j).array()).matrix();
 		}
-		// residual = w*(d.n)² / eigenValue
-		dotProd = (mPts.weights.row(0).array() * dotProd.array().square() * eigenValues.row(i).cwiseInverse().array()).matrix();
+		// residual = w*(d.n)² / (1 + eigenValue)
+		dotProd = (mPts.weights.row(0).array() * dotProd.array().square() * (eigenValues.row(i).array() + 1).cwiseInverse()).matrix();
 
 		// add the sum of the norm of each dot product
 		residualError += dotProd.sum();
@@ -368,5 +368,7 @@ T GaussianToPointErrorMinimizer<T>::getOverlap() const
 	return (T) count / (T) (nbUniquePoint + this->lastErrorElements.nbRejectedPoints);
 }
 
-template struct GaussianToPointErrorMinimizer<float>;
-template struct GaussianToPointErrorMinimizer<double>;
+template
+struct GaussianToPointErrorMinimizer<float>;
+template
+struct GaussianToPointErrorMinimizer<double>;

@@ -1,14 +1,19 @@
 #include <pointmatcher/PointMatcher.h>
+#include "pointmatcher/DataPointsFilters/utils/utils.h"
 
 typedef PointMatcher<float> PM;
 
 typename PM::DataPoints generateReading()
 {
-	PM::Matrix features = PM::Matrix::Zero(4, 10);
-	for(unsigned int i = 0; i < features.cols(); ++i)
+	PM::Matrix features = PM::Matrix::Zero(4, 3);
+	for(unsigned int i = 0; i < 3; ++i)
 	{
-		double angle = (2.0 * M_PI * i / (features.cols() - 1));
-		features.col(i) = (PM::Vector(4) << std::cos(angle) * 3, std::sin(angle) * 3, i / 10.f, 1).finished();
+		double angle = -M_PI / 4 + (i * M_PI / 4);
+		if(i == 1)
+		{
+			angle += M_PI / 8;
+		}
+		features.col(i) = (PM::Vector(4) << std::cos(angle), std::sin(angle), 0.f, 1).finished();
 	}
 	PM::DataPoints::Labels featureLabels;
 	featureLabels.push_back(PM::DataPoints::Label("x", 1));
@@ -34,13 +39,21 @@ typename PM::DataPoints generateReading()
 
 	PM::DataPoints cloud(features, featureLabels, descriptors, descriptorLabels, times, timeLabels);
 
+//	PM::Matrix covariances = PM::Matrix::Zero(9, 3);
+//	covariances.col(0) = PointMatcherSupport::serializeEigVec<float>(PM::Matrix::Identity(3, 3) * 1);
+//	covariances.col(1) = PointMatcherSupport::serializeEigVec<float>(PM::Matrix::Identity(3, 3) * 0.1);
+//	covariances.col(2) = PointMatcherSupport::serializeEigVec<float>(PM::Matrix::Identity(3, 3) * 1);
+//	cloud.addDescriptor("covariance", covariances);
+//
+//  return cloud;
+
 	PM::Parameters params;
-	params["linearSpeedsX"] = "1";
-	params["linearSpeedsY"] = "1";
-	params["linearSpeedsZ"] = "1";
+	params["linearSpeedsX"] = "0";
+	params["linearSpeedsY"] = "0";
+	params["linearSpeedsZ"] = "0";
 	params["angularSpeedsX"] = "0";
 	params["angularSpeedsY"] = "0";
-	params["angularSpeedsZ"] = "0";
+	params["angularSpeedsZ"] = "1";
 	params["measureTimes"] = "0";
 	std::shared_ptr<PM::DataPointsFilter> deskewingFilter = PM::get().DataPointsFilterRegistrar.create("DeskewingUncertaintyDataPointsFilter", params);
 	return deskewingFilter->filter(cloud);
@@ -48,11 +61,11 @@ typename PM::DataPoints generateReading()
 
 typename PM::DataPoints generateReference()
 {
-	PM::Matrix features = PM::Matrix::Zero(4, 10);
-	for(unsigned int i = 0; i < features.cols(); ++i)
+	PM::Matrix features = PM::Matrix::Zero(4, 3);
+	for(unsigned int i = 0; i < 3; ++i)
 	{
-		double angle = 2.0 * M_PI * i / (features.cols() - 1);
-		features.col(i) = (PM::Vector(4) << std::cos(angle) * 2, std::sin(angle) * 2, i / 10.f, 1).finished();
+		double angle = -M_PI / 4 + (i * M_PI / 4);
+		features.col(i) = (PM::Vector(4) << std::cos(angle), std::sin(angle), 0.f, 1).finished();
 	}
 	PM::DataPoints::Labels featureLabels;
 	featureLabels.push_back(PM::DataPoints::Label("x", 1));
