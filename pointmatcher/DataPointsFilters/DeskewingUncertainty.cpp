@@ -2,6 +2,30 @@
 #include <numeric>
 #include <boost/lexical_cast.hpp>
 #include "utils/utils.h"
+#include <fstream>
+
+template<typename T>
+std::vector<std::pair<T, T>> readLookupTable(const std::string& fileName)
+{
+	std::vector<std::pair<T, T>> speedVariances;
+	std::ifstream file(fileName);
+	std::string line;
+	std::getline(file, line); // skip header
+	while(std::getline(file, line))
+	{
+		size_t tokenStartPosition = 0;
+		size_t tokenSize = line.find(",");
+		T minSpeed = T(std::stod(line.substr(tokenStartPosition, tokenSize)));
+		tokenStartPosition = tokenSize + 1;
+		tokenSize = line.find(",", tokenStartPosition) - tokenStartPosition;
+		T maxSpeed = T(std::stod(line.substr(tokenStartPosition, tokenSize)));
+		tokenStartPosition = tokenStartPosition + tokenSize + 1;
+		T covariance = T(std::stod(line.substr(tokenStartPosition)));
+		speedVariances.emplace_back(std::make_pair(minSpeed, covariance));
+	}
+	file.close();
+	return speedVariances;
+}
 
 template<typename Func>
 struct lambda_as_visitor_wrapper : Func
@@ -99,19 +123,60 @@ DeskewingUncertaintyDataPointsFilter<T>::DeskewingUncertaintyDataPointsFilter(co
 		measureTimes(castToScalarVector(Parametrizable::getParamValueString("measureTimes"))
 		)
 {
+	std::vector<std::pair<T, T>> linearSpeedCovariances = readLookupTable<T>("/home/norlab/repos/libpointmatcher/linear_speed_covariances.csv");
+	std::vector<std::pair<T, T>> angularSpeedCovariances = readLookupTable<T>("/home/norlab/repos/libpointmatcher/angular_speed_covariances.csv");
+
 	for(unsigned int i = 0; i < linearVelocities.size(); ++i)
 	{
+		unsigned int index = 0;
+		while(index + 1 < linearSpeedCovariances.size() && linearVelocities[i](0) >= linearSpeedCovariances[index + 1].first)
+		{
+			++index;
+		}
+		T linearSpeedVarianceX = linearSpeedCovariances[index].second;
+		index = 0;
+		while(index + 1 < linearSpeedCovariances.size() && linearVelocities[i](1) >= linearSpeedCovariances[index + 1].first)
+		{
+			++index;
+		}
+		T linearSpeedVarianceY = linearSpeedCovariances[index].second;
+		index = 0;
+		while(index + 1 < linearSpeedCovariances.size() && linearVelocities[i](2) >= linearSpeedCovariances[index + 1].first)
+		{
+			++index;
+		}
+		T linearSpeedVarianceZ = linearSpeedCovariances[index].second;
+
+		index = 0;
+		while(index + 1 < angularSpeedCovariances.size() && angularVelocities[i](0) >= angularSpeedCovariances[index + 1].first)
+		{
+			++index;
+		}
+		T angularSpeedVarianceX = angularSpeedCovariances[index].second;
+		index = 0;
+		while(index + 1 < angularSpeedCovariances.size() && angularVelocities[i](1) >= angularSpeedCovariances[index + 1].first)
+		{
+			++index;
+		}
+		T angularSpeedVarianceY = angularSpeedCovariances[index].second;
+		index = 0;
+		while(index + 1 < angularSpeedCovariances.size() && angularVelocities[i](2) >= angularSpeedCovariances[index + 1].first)
+		{
+			++index;
+		}
+		T angularSpeedVarianceZ = angularSpeedCovariances[index].second;
+
 		Gaussian<T> motionGaussian;
 		motionGaussian.mean = Vector::Zero(6);
 		motionGaussian.mean.head(3) = linearVelocities[i];
 		motionGaussian.mean.tail(3) = angularVelocities[i];
 		motionGaussian.covariance = Matrix::Zero(6, 6);
-		motionGaussian.covariance(0, 0) = 0.004 * 0.004;
-		motionGaussian.covariance(1, 1) = 0.004 * 0.004;
-		motionGaussian.covariance(2, 2) = 0.004 * 0.004;
-		motionGaussian.covariance(3, 3) = 0.025 * 0.025;
-		motionGaussian.covariance(4, 4) = 0.025 * 0.025;
-		motionGaussian.covariance(5, 5) = 0.025 * 0.025;
+		motionGaussian.covariance(0, 0) = linearSpeedVarianceX;
+		motionGaussian.covariance(1, 1) = linearSpeedVarianceY;
+		motionGaussian.covariance(2, 2) = linearSpeedVarianceZ;
+		motionGaussian.covariance(3, 3) = angularSpeedVarianceX;
+		motionGaussian.covariance(4, 4) = angularSpeedVarianceY;
+		motionGaussian.covariance(5, 5) = angularSpeedVarianceZ;
 		motionGaussians.push_back(motionGaussian);
 	}
 }
