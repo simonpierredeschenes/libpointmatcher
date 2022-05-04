@@ -47,13 +47,15 @@ typedef Parametrizable::ParametersDoc ParametersDoc;
 
 template<typename T>
 GaussianToPointErrorMinimizer<T>::GaussianToPointErrorMinimizer(const Parameters& params):
-		ErrorMinimizer(name(), availableParameters(), params)
+		ErrorMinimizer(name(), availableParameters(), params),
+		scaleFactor(Parametrizable::get<T>("scaleFactor"))
 {
 }
 
 template<typename T>
 GaussianToPointErrorMinimizer<T>::GaussianToPointErrorMinimizer(const ParametersDoc paramsDoc, const Parameters& params):
-		ErrorMinimizer(name(), paramsDoc, params)
+		ErrorMinimizer(name(), paramsDoc, params),
+		scaleFactor(Parametrizable::get<T>("scaleFactor"))
 {
 }
 
@@ -130,7 +132,6 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 	return compute_in_place(mPts);
 }
 
-
 template<typename T>
 typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer<T>::compute_in_place(ErrorElements& mPts)
 {
@@ -173,8 +174,8 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 			F.row(j + cross.rows()) = eigenVector.row(j);
 		}
 
-		// scale by 1 / (1 + eigenValue)
-		wF = wF.array().rowwise() * (eigenValues.row(i).array() + 1).cwiseInverse();
+		// scale by 1 / (scaleFactor + eigenValue)
+		wF = wF.array().rowwise() * (eigenValues.row(i).array() + scaleFactor).cwiseInverse();
 
 		// Unadjust covariance A += wF * F'
 		A += wF * F.transpose();
@@ -216,7 +217,7 @@ typename PointMatcher<T>::TransformationParameters GaussianToPointErrorMinimizer
 
 
 template<typename T>
-T GaussianToPointErrorMinimizer<T>::computeResidualError(ErrorElements mPts)
+T GaussianToPointErrorMinimizer<T>::computeResidualError(ErrorElements mPts) const
 {
 	const Matrix& covariances = mPts.reading.getDescriptorViewByName("covariance");
 	Matrix eigenValues = Matrix::Zero(3, covariances.cols());
@@ -246,8 +247,8 @@ T GaussianToPointErrorMinimizer<T>::computeResidualError(ErrorElements mPts)
 		{
 			dotProd += (deltas.row(j).array() * eigenVector.row(j).array()).matrix();
 		}
-		// residual = w*(d.n)² / (1 + eigenValue)
-		dotProd = (mPts.weights.row(0).array() * dotProd.array().square() * (eigenValues.row(i).array() + 1).cwiseInverse()).matrix();
+		// residual = w*(d.n)² / (scaleFactor + eigenValue)
+		dotProd = (mPts.weights.row(0).array() * dotProd.array().square() * (eigenValues.row(i).array() + scaleFactor).cwiseInverse()).matrix();
 
 		// add the sum of the norm of each dot product
 		residualError += dotProd.sum();
@@ -268,7 +269,7 @@ T GaussianToPointErrorMinimizer<T>::getResidualError(
 	// Fetch paired points
 	typename ErrorMinimizer::ErrorElements mPts(filteredReading, filteredReference, outlierWeights, matches);
 
-	return GaussianToPointErrorMinimizer::computeResidualError(mPts);
+	return computeResidualError(mPts);
 }
 
 template<typename T>

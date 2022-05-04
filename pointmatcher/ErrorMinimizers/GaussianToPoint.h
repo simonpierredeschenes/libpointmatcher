@@ -3,47 +3,50 @@
 #include "PointMatcher.h"
 
 template<typename T>
-struct GaussianToPointErrorMinimizer: public PointMatcher<T>::ErrorMinimizer
+struct GaussianToPointErrorMinimizer : public PointMatcher<T>::ErrorMinimizer
 {
-    typedef PointMatcherSupport::Parametrizable Parametrizable;
-    typedef PointMatcherSupport::Parametrizable P;
-    typedef Parametrizable::Parameters Parameters;
-    typedef Parametrizable::ParameterDoc ParameterDoc;
-    typedef Parametrizable::ParametersDoc ParametersDoc;
+	typedef PointMatcherSupport::Parametrizable Parametrizable;
+	typedef PointMatcherSupport::Parametrizable P;
+	typedef Parametrizable::Parameters Parameters;
+	typedef Parametrizable::ParameterDoc ParameterDoc;
+	typedef Parametrizable::ParametersDoc ParametersDoc;
 
-    typedef typename PointMatcher<T>::DataPoints DataPoints;
-    typedef typename PointMatcher<T>::Matches Matches;
-    typedef typename PointMatcher<T>::OutlierWeights OutlierWeights;
-    typedef typename PointMatcher<T>::ErrorMinimizer ErrorMinimizer;
-    typedef typename PointMatcher<T>::ErrorMinimizer::ErrorElements ErrorElements;
-    typedef typename PointMatcher<T>::TransformationParameters TransformationParameters;
-    typedef typename PointMatcher<T>::Vector Vector;
-    typedef typename PointMatcher<T>::Matrix Matrix;
+	typedef typename PointMatcher<T>::DataPoints DataPoints;
+	typedef typename PointMatcher<T>::Matches Matches;
+	typedef typename PointMatcher<T>::OutlierWeights OutlierWeights;
+	typedef typename PointMatcher<T>::ErrorMinimizer ErrorMinimizer;
+	typedef typename PointMatcher<T>::ErrorMinimizer::ErrorElements ErrorElements;
+	typedef typename PointMatcher<T>::TransformationParameters TransformationParameters;
+	typedef typename PointMatcher<T>::Vector Vector;
+	typedef typename PointMatcher<T>::Matrix Matrix;
 
 	virtual inline const std::string name()
 	{
 		return "GaussianToPointErrorMinimizer";
 	}
 
-    inline static const std::string description()
-    {
-        return "Gaussian-to-point error.";
-    }
+	inline static const std::string description()
+	{
+		return "Gaussian-to-point error.";
+	}
 
-    inline static const ParametersDoc availableParameters()
-    {
-        return {};
-    }
+	inline static const ParametersDoc availableParameters()
+	{
+		return {
+				{"scaleFactor", "The alignment error will be scaled by 1 / (scaleFactor + eigenValue).", "1", "0", "inf", &P::Comp < T > }
+		};
+	}
 
-    GaussianToPointErrorMinimizer(const Parameters& params = Parameters());
-    GaussianToPointErrorMinimizer(const ParametersDoc paramsDoc, const Parameters& params);
-    virtual TransformationParameters compute(const ErrorElements& mPts);
+	const T scaleFactor;
+
+	GaussianToPointErrorMinimizer(const Parameters& params = Parameters());
+	GaussianToPointErrorMinimizer(const ParametersDoc paramsDoc, const Parameters& params);
+	virtual TransformationParameters compute(const ErrorElements& mPts);
 	TransformationParameters compute_in_place(ErrorElements& mPts);
-    virtual T getResidualError(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches) const;
-    virtual T getOverlap() const;
-
-    static T computeResidualError(ErrorElements mPts);
+	virtual T getResidualError(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches) const;
+	virtual T getOverlap() const;
+	T computeResidualError(ErrorElements mPts) const;
 };
 
 template<typename T, typename MatrixA, typename Vector>
-void solvePossiblyUnderdeterminedLinearSystem(const MatrixA& A, const Vector & b, Vector & x);
+void solvePossiblyUnderdeterminedLinearSystem(const MatrixA& A, const Vector& b, Vector& x);
