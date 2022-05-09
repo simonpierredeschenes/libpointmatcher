@@ -17,7 +17,7 @@ struct NoiseSkewDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	inline static const std::string description()
 	{
 		return "Adds a 1D descriptor named <skewUncertainty> that represents the uncertainty of each point, based on the skew caused by noise on speed and acceleration.\n\n"
-			   "Required descriptors: normals (for skew model no. 2) curvatures (for skew models no. 3 and 5), rings (for skew model no. 2 with 3D point clouds).\n"
+			   "Required descriptors: normals (for skew model no. 2) curvatures (for skew models no. 3 and 5), ring (for skew model no. 2 with 3D point clouds).\n"
 			   "Required times: stamps (for skew models no. 0, 1, 2, 3 and 4).\n"
 			   "Produced descriptors:  skewUncertainty.\n"
 			   "Sensor assumed to be at the origin: yes.\n"

@@ -362,13 +362,13 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 			}
 			else
 			{
-				if(!cloud.descriptorExists("rings"))
+				if(!cloud.descriptorExists("ring"))
 				{
-					throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find rings in descriptors.");
+					throw InvalidField("NoiseSkewDataPointsFilter: Error, cannot find ring in descriptors.");
 				}
 				
 				std::map<int, int> pointCounts;
-				const auto& rings = cloud.getDescriptorViewByName("rings");
+				const auto& rings = cloud.getDescriptorViewByName("ring");
 				for(unsigned int i = 0; i < cloud.getNbPoints(); i++)
 				{
 					int ringId = rings(0, i);
