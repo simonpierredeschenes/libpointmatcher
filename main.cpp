@@ -1,59 +1,26 @@
 #include <pointmatcher/PointMatcher.h>
-#include "pointmatcher/DataPointsFilters/utils/utils.h"
 
 typedef PointMatcher<float> PM;
 
 typename PM::DataPoints generateReading()
 {
-	PM::Matrix features = PM::Matrix::Zero(4, 3);
-	for(unsigned int i = 0; i < 3; ++i)
+	PM::DataPoints cloud(PM::DataPoints::load("/home/norlab/repos/libpointmatcher/examples/data/cloud.00000.vtk"));
+
+	PM::Int64Matrix stamps = PM::Int64Matrix::Zero(1, cloud.getNbPoints());
+	for(unsigned int i = 0; i < cloud.getNbPoints(); ++i)
 	{
-		double angle = -M_PI / 4 + (i * M_PI / 4);
-		if(i == 1)
-		{
-			angle += M_PI / 8;
-		}
-		features.col(i) = (PM::Vector(4) << std::cos(angle), std::sin(angle), 0.f, 1).finished();
+		stamps(0, i) = (cloud.getNbPoints() - 1) * 1e8 / (cloud.getNbPoints() - 1);
 	}
-	PM::DataPoints::Labels featureLabels;
-	featureLabels.push_back(PM::DataPoints::Label("x", 1));
-	featureLabels.push_back(PM::DataPoints::Label("y", 1));
-	featureLabels.push_back(PM::DataPoints::Label("z", 1));
-	featureLabels.push_back(PM::DataPoints::Label("pad", 1));
-
-	PM::Matrix descriptors = PM::Matrix::Zero(1, features.cols());
-	for(unsigned int i = 0; i < features.cols(); ++i)
-	{
-		descriptors(0, i) = i;
-	}
-	PM::DataPoints::Labels descriptorLabels;
-	descriptorLabels.push_back(PM::DataPoints::Label("firingDelays", 1));
-
-	PM::Int64Matrix times = PM::Int64Matrix::Zero(1, features.cols());
-	for(unsigned int i = 0; i < features.cols(); ++i)
-	{
-		times(0, i) = descriptors(0, i) * 1e7;
-	}
-	PM::DataPoints::Labels timeLabels;
-	timeLabels.push_back(PM::DataPoints::Label("stamps", 1));
-
-	PM::DataPoints cloud(features, featureLabels, descriptors, descriptorLabels, times, timeLabels);
-
-//	PM::Matrix covariances = PM::Matrix::Zero(9, 3);
-//	covariances.col(0) = PointMatcherSupport::serializeEigVec<float>(PM::Matrix::Identity(3, 3) * 1);
-//	covariances.col(1) = PointMatcherSupport::serializeEigVec<float>(PM::Matrix::Identity(3, 3) * 0.1);
-//	covariances.col(2) = PointMatcherSupport::serializeEigVec<float>(PM::Matrix::Identity(3, 3) * 1);
-//	cloud.addDescriptor("covariance", covariances);
-//
-//  return cloud;
+	stamps(0, 0) = 0;
+	cloud.addTime("stamps", stamps);
 
 	PM::Parameters params;
-	params["linearSpeedsX"] = "0";
-	params["linearSpeedsY"] = "0";
-	params["linearSpeedsZ"] = "0";
+	params["linearSpeedsX"] = "1";
+	params["linearSpeedsY"] = "1";
+	params["linearSpeedsZ"] = "1";
 	params["angularSpeedsX"] = "0";
 	params["angularSpeedsY"] = "0";
-	params["angularSpeedsZ"] = "1";
+	params["angularSpeedsZ"] = "0";
 	params["measureTimes"] = "0";
 	std::shared_ptr<PM::DataPointsFilter> deskewingFilter = PM::get().DataPointsFilterRegistrar.create("DeskewingUncertaintyDataPointsFilter", params);
 	return deskewingFilter->filter(cloud);
@@ -61,18 +28,11 @@ typename PM::DataPoints generateReading()
 
 typename PM::DataPoints generateReference()
 {
-	PM::Matrix features = PM::Matrix::Zero(4, 3);
-	for(unsigned int i = 0; i < 3; ++i)
-	{
-		double angle = -M_PI / 4 + (i * M_PI / 4);
-		features.col(i) = (PM::Vector(4) << std::cos(angle), std::sin(angle), 0.f, 1).finished();
-	}
-	PM::DataPoints::Labels featureLabels;
-	featureLabels.push_back(PM::DataPoints::Label("x", 1));
-	featureLabels.push_back(PM::DataPoints::Label("y", 1));
-	featureLabels.push_back(PM::DataPoints::Label("z", 1));
-	featureLabels.push_back(PM::DataPoints::Label("pad", 1));
-	return {features, featureLabels};
+	PM::DataPoints cloud(PM::DataPoints::load("/home/norlab/repos/libpointmatcher/examples/data/cloud.00001.vtk"));
+	PM::Parameters params;
+	params["knn"] = "20";
+	std::shared_ptr<PM::DataPointsFilter> normalFilter = PM::get().DataPointsFilterRegistrar.create("SurfaceNormalDataPointsFilter", params);
+	return normalFilter->filter(cloud);;
 }
 
 int main(int argc, char** argv)
@@ -89,8 +49,8 @@ int main(int argc, char** argv)
 	std::shared_ptr<PM::Matcher> matcher = PM::get().MatcherRegistrar.create("KDTreeMatcher", params);
 	matcher->init(reference);
 	icp.matcher = matcher;
-	std::shared_ptr<PM::ErrorMinimizer> gaussianToPointMinimizer = PM::get().ErrorMinimizerRegistrar.create("GaussianToPointErrorMinimizer");
-	icp.errorMinimizer = gaussianToPointMinimizer;
+	std::shared_ptr<PM::ErrorMinimizer> gaussianToPlaneMinimizer = PM::get().ErrorMinimizerRegistrar.create("GaussianToPlaneErrorMinimizer");
+	icp.errorMinimizer = gaussianToPlaneMinimizer;
 	params.clear();
 	params["minDiffTransErr"] = "0.01";
 	params["minDiffRotErr"] = "0.001";
@@ -101,16 +61,21 @@ int main(int argc, char** argv)
 	params["maxIterationCount"] = "40";
 	std::shared_ptr<PM::TransformationChecker> counterChecker = PM::get().TransformationCheckerRegistrar.create("CounterTransformationChecker", params);
 	icp.transformationCheckers.push_back(counterChecker);
-	params.clear();
-	params["baseFileName"] = "/home/norlab/Desktop/inspector_output/test";
-	params["dumpDataLinks"] = "1";
-	params["dumpReading"] = "1";
-	params["dumpReference"] = "1";
-	std::shared_ptr<PM::Inspector> inspector = PM::get().InspectorRegistrar.create("VTKFileInspector", params);
+//	params.clear();
+//	params["baseFileName"] = "/home/norlab/Desktop/inspector_output/test";
+//	params["dumpDataLinks"] = "1";
+//	params["dumpReading"] = "1";
+//	params["dumpReference"] = "1";
+//	std::shared_ptr<PM::Inspector> inspector = PM::get().InspectorRegistrar.create("VTKFileInspector", params);
+//	icp.inspector = inspector;
+	std::shared_ptr<PM::Inspector> inspector = PM::get().InspectorRegistrar.create("NullInspector");
 	icp.inspector = inspector;
 
 	PM::TransformationParameters optimalTransform = icp(reading, reference);
 	icp.transformations.apply(reading, optimalTransform);
+
+	reading.save("/home/norlab/Desktop/reading.vtk");
+	reference.save("/home/norlab/Desktop/reference.vtk");
 
 	return 0;
 }
