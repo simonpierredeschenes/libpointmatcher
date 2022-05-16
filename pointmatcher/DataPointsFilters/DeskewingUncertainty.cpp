@@ -172,8 +172,6 @@ DeskewingUncertaintyDataPointsFilter<T>::DeskewingUncertaintyDataPointsFilter(co
 
 		Gaussian<T> motionGaussian;
 		motionGaussian.mean = Vector::Zero(6);
-		motionGaussian.mean.head(3) = linearVelocities[i];
-		motionGaussian.mean.tail(3) = angularVelocities[i];
 		motionGaussian.covariance = Matrix::Zero(6, 6);
 		motionGaussian.covariance(0, 0) = linearSpeedVarianceX;
 		motionGaussian.covariance(1, 1) = linearSpeedVarianceY;
