@@ -30,13 +30,14 @@ struct DeskewingUncertaintyDataPointsFilter : public PointMatcher<T>::DataPoints
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
-				{"linearSpeedsX",  "Comma-separated linear speeds along the X axis during the scan",  "0"},
-				{"linearSpeedsY",  "Comma-separated linear speeds along the Y axis during the scan",  "0"},
-				{"linearSpeedsZ",  "Comma-separated linear speeds along the Z axis during the scan",  "0"},
-				{"angularSpeedsX", "Comma-separated angular speeds along the X axis during the scan", "0"},
-				{"angularSpeedsY", "Comma-separated angular speeds along the Y axis during the scan", "0"},
-				{"angularSpeedsZ", "Comma-separated angular speeds along the Z axis during the scan", "0"},
-				{"measureTimes",   "Times at which inertial measurements were acquired",              "0"},
+				{"linearSpeedsX",        "Comma-separated linear speeds along the X axis during the scan",  "0"},
+				{"linearSpeedsY",        "Comma-separated linear speeds along the Y axis during the scan",  "0"},
+				{"linearSpeedsZ",        "Comma-separated linear speeds along the Z axis during the scan",  "0"},
+				{"angularSpeedsX",       "Comma-separated angular speeds along the X axis during the scan", "0"},
+				{"angularSpeedsY",       "Comma-separated angular speeds along the Y axis during the scan", "0"},
+				{"angularSpeedsZ",       "Comma-separated angular speeds along the Z axis during the scan", "0"},
+				{"measureTimes",         "Times at which inertial measurements were acquired",              "0"},
+				{"angularSpeedNoiseStd", "Standard deviation of the noise on angular speeds.",              "0"},
 		};
 	}
 
@@ -50,6 +51,7 @@ struct DeskewingUncertaintyDataPointsFilter : public PointMatcher<T>::DataPoints
 	const std::vector<Vector> angularVelocities;
 	std::vector<Gaussian<T>> motionGaussians;
 	const std::vector<T> measureTimes;
+	const T angularSpeedNoiseStd;
 
 private:
 	std::vector<T> castToScalarVector(const std::string& values);

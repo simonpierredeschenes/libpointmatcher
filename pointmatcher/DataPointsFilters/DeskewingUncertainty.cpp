@@ -120,8 +120,8 @@ DeskewingUncertaintyDataPointsFilter<T>::DeskewingUncertaintyDataPointsFilter(co
 		angularVelocities(castToVectorVector(Parametrizable::getParamValueString("angularSpeedsX"),
 											 Parametrizable::getParamValueString("angularSpeedsY"),
 											 Parametrizable::getParamValueString("angularSpeedsZ"))),
-		measureTimes(castToScalarVector(Parametrizable::getParamValueString("measureTimes"))
-		)
+		measureTimes(castToScalarVector(Parametrizable::getParamValueString("measureTimes"))),
+		angularSpeedNoiseStd(Parametrizable::get<T>("angularSpeedNoiseStd"))
 {
 	std::vector<std::pair<T, T>> linearSpeedCovariances = readLookupTable<T>("/home/norlab/repos/libpointmatcher/linear_speed_covariances.csv");
 	std::vector<std::pair<T, T>> angularSpeedCovariances = readLookupTable<T>("/home/norlab/repos/libpointmatcher/angular_speed_covariances.csv");
@@ -156,19 +156,19 @@ DeskewingUncertaintyDataPointsFilter<T>::DeskewingUncertaintyDataPointsFilter(co
 		{
 			++index;
 		}
-		T angularSpeedVarianceX = angularSpeedCovariances[index].second;
+		T angularSpeedVarianceX = angularSpeedCovariances[index].second + std::pow(angularSpeedNoiseStd, 2);
 		index = 0;
 		while(index + 1 < angularSpeedCovariances.size() && std::fabs(angularVelocities[i](1)) >= angularSpeedCovariances[index + 1].first)
 		{
 			++index;
 		}
-		T angularSpeedVarianceY = angularSpeedCovariances[index].second;
+		T angularSpeedVarianceY = angularSpeedCovariances[index].second + std::pow(angularSpeedNoiseStd, 2);
 		index = 0;
 		while(index + 1 < angularSpeedCovariances.size() && std::fabs(angularVelocities[i](2)) >= angularSpeedCovariances[index + 1].first)
 		{
 			++index;
 		}
-		T angularSpeedVarianceZ = angularSpeedCovariances[index].second;
+		T angularSpeedVarianceZ = angularSpeedCovariances[index].second + std::pow(angularSpeedNoiseStd, 2);
 
 		Gaussian<T> motionGaussian;
 		motionGaussian.mean = Vector::Zero(6);
