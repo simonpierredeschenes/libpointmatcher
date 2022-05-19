@@ -133,38 +133,38 @@ DeskewingUncertaintyDataPointsFilter<T>::DeskewingUncertaintyDataPointsFilter(co
 	for(unsigned int i = 0; i < linearVelocities.size(); ++i)
 	{
 		unsigned int index = 0;
-		while(index + 1 < linearSpeedCovariances.size() && linearVelocities[i](0) >= linearSpeedCovariances[index + 1].first)
+		while(index + 1 < linearSpeedCovariances.size() && std::fabs(linearVelocities[i](0)) >= linearSpeedCovariances[index + 1].first)
 		{
 			++index;
 		}
 		T linearSpeedVarianceX = linearSpeedCovariances[index].second;
 		index = 0;
-		while(index + 1 < linearSpeedCovariances.size() && linearVelocities[i](1) >= linearSpeedCovariances[index + 1].first)
+		while(index + 1 < linearSpeedCovariances.size() && std::fabs(linearVelocities[i](1)) >= linearSpeedCovariances[index + 1].first)
 		{
 			++index;
 		}
 		T linearSpeedVarianceY = linearSpeedCovariances[index].second;
 		index = 0;
-		while(index + 1 < linearSpeedCovariances.size() && linearVelocities[i](2) >= linearSpeedCovariances[index + 1].first)
+		while(index + 1 < linearSpeedCovariances.size() && std::fabs(linearVelocities[i](2)) >= linearSpeedCovariances[index + 1].first)
 		{
 			++index;
 		}
 		T linearSpeedVarianceZ = linearSpeedCovariances[index].second;
 
 		index = 0;
-		while(index + 1 < angularSpeedCovariances.size() && angularVelocities[i](0) >= angularSpeedCovariances[index + 1].first)
+		while(index + 1 < angularSpeedCovariances.size() && std::fabs(angularVelocities[i](0)) >= angularSpeedCovariances[index + 1].first)
 		{
 			++index;
 		}
 		T angularSpeedVarianceX = angularSpeedCovariances[index].second;
 		index = 0;
-		while(index + 1 < angularSpeedCovariances.size() && angularVelocities[i](1) >= angularSpeedCovariances[index + 1].first)
+		while(index + 1 < angularSpeedCovariances.size() && std::fabs(angularVelocities[i](1)) >= angularSpeedCovariances[index + 1].first)
 		{
 			++index;
 		}
 		T angularSpeedVarianceY = angularSpeedCovariances[index].second;
 		index = 0;
-		while(index + 1 < angularSpeedCovariances.size() && angularVelocities[i](2) >= angularSpeedCovariances[index + 1].first)
+		while(index + 1 < angularSpeedCovariances.size() && std::fabs(angularVelocities[i](2)) >= angularSpeedCovariances[index + 1].first)
 		{
 			++index;
 		}
@@ -211,7 +211,7 @@ void DeskewingUncertaintyDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 	int latestMeasureIndex = 0;
 	Gaussian<T> latestPoseGaussian;
 	latestPoseGaussian.mean = Vector::Zero(6);
-	latestPoseGaussian.covariance = Matrix::Identity(6, 6) * 1e-6;
+	latestPoseGaussian.covariance = Matrix::Identity(6, 6) * 1e-12;
 	Matrix pointCovariances = Matrix::Zero(9, cloud.getNbPoints());
 	for(unsigned int i = 0; i < orderedDataPoints.getNbPoints(); ++i)
 	{
@@ -230,6 +230,7 @@ void DeskewingUncertaintyDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 //	Matrix covXScale = Matrix::Zero(1, cloud.getNbPoints());
 //	Matrix covYScale = Matrix::Zero(1, cloud.getNbPoints());
 //	Matrix covZScale = Matrix::Zero(1, cloud.getNbPoints());
+//	Matrix covScale = Matrix::Zero(1, cloud.getNbPoints());
 //	Matrix covX = Matrix::Zero(3, cloud.getNbPoints());
 //	Matrix covY = Matrix::Zero(3, cloud.getNbPoints());
 //	Matrix covZ = Matrix::Zero(3, cloud.getNbPoints());
@@ -244,6 +245,7 @@ void DeskewingUncertaintyDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 //			covXScale(0, i) = std::sqrt(eigenVa(0));
 //			covYScale(0, i) = std::sqrt(eigenVa(1));
 //			covZScale(0, i) = std::sqrt(eigenVa(2));
+//			covScale(0, i) = std::sqrt(eigenVa(0) + eigenVa(1) + eigenVa(2));
 //			covX.col(i) = eigenVe.col(0);
 //			covY.col(i) = eigenVe.col(1);
 //			covZ.col(i) = eigenVe.col(2);
@@ -252,6 +254,7 @@ void DeskewingUncertaintyDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 //	cloud.addDescriptor("covXScale", covXScale);
 //	cloud.addDescriptor("covYScale", covYScale);
 //	cloud.addDescriptor("covZScale", covZScale);
+//	cloud.addDescriptor("covScale", covScale);
 //	cloud.addDescriptor("covX", covX);
 //	cloud.addDescriptor("covY", covY);
 //	cloud.addDescriptor("covZ", covZ);
