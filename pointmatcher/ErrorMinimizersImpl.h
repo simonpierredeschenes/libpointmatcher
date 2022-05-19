@@ -45,6 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ErrorMinimizers/Identity.h"
 #include "ErrorMinimizers/GaussianToPoint.h"
 #include "ErrorMinimizers/GaussianToPlane.h"
+#include "ErrorMinimizers/GaussianToGaussian.h"
 
 template<typename T>
 struct ErrorMinimizersImpl
@@ -57,6 +58,7 @@ struct ErrorMinimizersImpl
 	typedef ::IdentityErrorMinimizer<T> IdentityErrorMinimizer;
 	typedef ::GaussianToPointErrorMinimizer<T> GaussianToPointErrorMinimizer;
 	typedef ::GaussianToPlaneErrorMinimizer<T> GaussianToPlaneErrorMinimizer;
+	typedef ::GaussianToGaussianErrorMinimizer<T> GaussianToGaussianErrorMinimizer;
 }; // ErrorMinimizersImpl
 
 #endif // __POINTMATCHER_ERRORMINIMIZER_H

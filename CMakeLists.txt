@@ -329,6 +329,7 @@ set(POINTMATCHER_SRC
 	pointmatcher/ErrorMinimizers/Identity.cpp
 	pointmatcher/ErrorMinimizers/GaussianToPoint.cpp
 	pointmatcher/ErrorMinimizers/GaussianToPlane.cpp
+	pointmatcher/ErrorMinimizers/GaussianToGaussian.cpp
 #DataPointsFilters
 	pointmatcher/DataPointsFilters/Identity.cpp
 	pointmatcher/DataPointsFilters/RemoveNaN.cpp
