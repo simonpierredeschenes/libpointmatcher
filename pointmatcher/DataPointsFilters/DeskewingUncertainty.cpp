@@ -237,19 +237,86 @@ void DeskewingUncertaintyDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 //	for(unsigned int i = 0; i < cloud.getNbPoints(); ++i)
 //	{
 //		Matrix C = PointMatcherSupport::deserializeEigVec<T>(pointCovariances.col(i));
-//		if(C.fullPivHouseholderQr().rank() >= 2)
+//		const Eigen::EigenSolver<Matrix> solver(C);
+//		Vector eigenVa = solver.eigenvalues().real();
+//		Matrix eigenVe = solver.eigenvectors().real();
+//
+//		Vector tmp_eigenVa = eigenVa;
+//		Matrix tmp_eigenVe = eigenVe;
+//		if(tmp_eigenVa(0) > tmp_eigenVa(1))
 //		{
-//			const Eigen::EigenSolver<Matrix> solver(C);
-//			Vector eigenVa = solver.eigenvalues().real();
-//			Matrix eigenVe = solver.eigenvectors().real();
-//			covXScale(0, i) = std::sqrt(eigenVa(0));
-//			covYScale(0, i) = std::sqrt(eigenVa(1));
-//			covZScale(0, i) = std::sqrt(eigenVa(2));
-//			covScale(0, i) = std::sqrt(eigenVa(0) + eigenVa(1) + eigenVa(2));
-//			covX.col(i) = eigenVe.col(0);
-//			covY.col(i) = eigenVe.col(1);
-//			covZ.col(i) = eigenVe.col(2);
+//			if(tmp_eigenVa(1) > tmp_eigenVa(2))
+//			{
+//				eigenVa(0) = tmp_eigenVa(0);
+//				eigenVe.col(0) = tmp_eigenVe.col(0);
+//				eigenVa(1) = tmp_eigenVa(1);
+//				eigenVe.col(1) = tmp_eigenVe.col(1);
+//				eigenVa(2) = tmp_eigenVa(2);
+//				eigenVe.col(2) = tmp_eigenVe.col(2);
+//			}
+//			else
+//			{
+//				if(tmp_eigenVa(0) > tmp_eigenVa(2))
+//				{
+//					eigenVa(0) = tmp_eigenVa(0);
+//					eigenVe.col(0) = tmp_eigenVe.col(0);
+//					eigenVa(1) = tmp_eigenVa(2);
+//					eigenVe.col(1) = tmp_eigenVe.col(2);
+//					eigenVa(2) = tmp_eigenVa(1);
+//					eigenVe.col(2) = tmp_eigenVe.col(1);
+//				}
+//				else
+//				{
+//					eigenVa(0) = tmp_eigenVa(2);
+//					eigenVe.col(0) = tmp_eigenVe.col(2);
+//					eigenVa(1) = tmp_eigenVa(0);
+//					eigenVe.col(1) = tmp_eigenVe.col(0);
+//					eigenVa(2) = tmp_eigenVa(1);
+//					eigenVe.col(2) = tmp_eigenVe.col(1);
+//				}
+//			}
 //		}
+//		else
+//		{
+//			if(tmp_eigenVa(0) > tmp_eigenVa(2))
+//			{
+//				eigenVa(0) = tmp_eigenVa(1);
+//				eigenVe.col(0) = tmp_eigenVe.col(1);
+//				eigenVa(1) = tmp_eigenVa(0);
+//				eigenVe.col(1) = tmp_eigenVe.col(0);
+//				eigenVa(2) = tmp_eigenVa(2);
+//				eigenVe.col(2) = tmp_eigenVe.col(2);
+//			}
+//			else
+//			{
+//				if(tmp_eigenVa(1) > tmp_eigenVa(2))
+//				{
+//					eigenVa(0) = tmp_eigenVa(1);
+//					eigenVe.col(0) = tmp_eigenVe.col(1);
+//					eigenVa(1) = tmp_eigenVa(2);
+//					eigenVe.col(1) = tmp_eigenVe.col(2);
+//					eigenVa(2) = tmp_eigenVa(0);
+//					eigenVe.col(2) = tmp_eigenVe.col(0);
+//				}
+//				else
+//				{
+//					eigenVa(0) = tmp_eigenVa(2);
+//					eigenVe.col(0) = tmp_eigenVe.col(2);
+//					eigenVa(1) = tmp_eigenVa(1);
+//					eigenVe.col(1) = tmp_eigenVe.col(1);
+//					eigenVa(2) = tmp_eigenVa(0);
+//					eigenVe.col(2) = tmp_eigenVe.col(0);
+//				}
+//			}
+//		}
+//
+//		covXScale(0, i) = std::sqrt(eigenVa(0));
+//		covYScale(0, i) = std::sqrt(eigenVa(1));
+//		covZScale(0, i) = std::sqrt(eigenVa(2));
+//		covScale(0, i) = std::sqrt(eigenVa(0) + eigenVa(1) + eigenVa(2));
+//		covX.col(i) = eigenVe.col(0);
+//		covY.col(i) = eigenVe.col(1);
+//		covZ.col(i) = eigenVe.col(2);
 //	}
 //	cloud.addDescriptor("covXScale", covXScale);
 //	cloud.addDescriptor("covYScale", covYScale);
