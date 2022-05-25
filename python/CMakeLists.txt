@@ -55,6 +55,9 @@ set(PYBIND11_SOURCES
     errorminimizers/point_to_point.cpp
     errorminimizers/point_to_point_similarity.cpp
     errorminimizers/point_to_point_with_cov.cpp
+    errorminimizers/gaussian_to_point.cpp
+    errorminimizers/gaussian_to_plane.cpp
+    errorminimizers/gaussian_to_gaussian.cpp
 
     #datapointfilters module
     datapointsfilters/bounding_box.cpp
@@ -83,6 +86,7 @@ set(PYBIND11_SOURCES
     datapointsfilters/surface_normal.cpp
     datapointsfilters/noise_skew.cpp
     datapointsfilters/surface_curvature.cpp
+    datapointsfilters/deskewing_uncertainty.cpp
 
     modules/point_matcher_module.cpp
     modules/point_matcher_support_module.cpp
