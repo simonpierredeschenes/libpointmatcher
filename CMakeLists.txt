@@ -150,7 +150,9 @@ include_directories(SYSTEM "${EIGEN_INCLUDE_DIR}")
 #find_package(Eigen3 REQUIRED)
 #message("-- eigen3 , version ${EIGEN_VERSION}")
 
-
+find_package(GSL)
+include_directories(${GSL_INCLUDE_DIRS})
+set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${GSL_LIBRARIES})
 
 #--------------------
 # DEPENDENCY: nabo
@@ -330,6 +332,9 @@ set(POINTMATCHER_SRC
 	pointmatcher/ErrorMinimizers/GaussianToPoint.cpp
 	pointmatcher/ErrorMinimizers/GaussianToPlane.cpp
 	pointmatcher/ErrorMinimizers/GaussianToGaussian.cpp
+	pointmatcher/ErrorMinimizers/GICP/optimize.cpp
+	pointmatcher/ErrorMinimizers/GICP/transform.cpp
+	pointmatcher/ErrorMinimizers/GICP/bfgs_funcs.cpp
 #DataPointsFilters
 	pointmatcher/DataPointsFilters/Identity.cpp
 	pointmatcher/DataPointsFilters/RemoveNaN.cpp
@@ -402,6 +407,7 @@ endif()
 
 target_link_libraries(pointmatcher PUBLIC ${Boost_LIBRARIES})
 target_link_libraries(pointmatcher PRIVATE ${libnabo_LIBRARIES})
+target_link_libraries(pointmatcher PRIVATE gsl blas)
 target_link_libraries(pointmatcher PRIVATE ${EXTERNAL_LIBS})
 if (EXTRA_DEPS)
 	add_dependencies(pointmatcher ${EXTRA_DEPS})

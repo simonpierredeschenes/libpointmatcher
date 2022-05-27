@@ -42,11 +42,4 @@ struct GaussianToGaussianErrorMinimizer : public PointMatcher<T>::ErrorMinimizer
 	GaussianToGaussianErrorMinimizer(const Parameters& params = Parameters());
 	GaussianToGaussianErrorMinimizer(const ParametersDoc paramsDoc, const Parameters& params);
 	virtual TransformationParameters compute(const ErrorElements& mPts);
-	TransformationParameters compute_in_place(ErrorElements& mPts);
-	virtual T getResidualError(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches) const;
-	virtual T getOverlap() const;
-	T computeResidualError(ErrorElements mPts) const;
 };
-
-template<typename T, typename MatrixA, typename Vector>
-void solvePossiblyUnderdeterminedLinearSystem(const MatrixA& A, const Vector& b, Vector& x);
