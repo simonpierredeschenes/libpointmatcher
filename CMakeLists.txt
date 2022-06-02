@@ -332,6 +332,7 @@ set(POINTMATCHER_SRC
 	pointmatcher/ErrorMinimizers/GaussianToPoint.cpp
 	pointmatcher/ErrorMinimizers/GaussianToPlane.cpp
 	pointmatcher/ErrorMinimizers/GaussianToGaussian.cpp
+	pointmatcher/ErrorMinimizers/GaussianToGaussianToPlane.cpp
 	pointmatcher/ErrorMinimizers/GICP/optimize.cpp
 	pointmatcher/ErrorMinimizers/GICP/transform.cpp
 	pointmatcher/ErrorMinimizers/GICP/bfgs_funcs.cpp

@@ -58,6 +58,7 @@ set(PYBIND11_SOURCES
     errorminimizers/gaussian_to_point.cpp
     errorminimizers/gaussian_to_plane.cpp
     errorminimizers/gaussian_to_gaussian.cpp
+    errorminimizers/gaussian_to_gaussian_to_plane.cpp
 
     #datapointfilters module
     datapointsfilters/bounding_box.cpp

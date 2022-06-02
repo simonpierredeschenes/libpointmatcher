@@ -3,7 +3,7 @@
 #include "PointMatcher.h"
 
 template<typename T>
-struct GaussianToGaussianErrorMinimizer : public PointMatcher<T>::ErrorMinimizer
+struct GaussianToGaussianToPlaneErrorMinimizer : public PointMatcher<T>::ErrorMinimizer
 {
 	typedef PointMatcherSupport::Parametrizable Parametrizable;
 	typedef PointMatcherSupport::Parametrizable P;
@@ -22,12 +22,12 @@ struct GaussianToGaussianErrorMinimizer : public PointMatcher<T>::ErrorMinimizer
 
 	virtual inline const std::string name()
 	{
-		return "GaussianToGaussianErrorMinimizer";
+		return "GaussianToGaussianToPlaneErrorMinimizer";
 	}
 
 	inline static const std::string description()
 	{
-		return "Gaussian-to-Gaussian error.";
+		return "Gaussian-to-Gaussian-to-plane error.";
 	}
 
 	inline static const ParametersDoc availableParameters()
@@ -39,7 +39,7 @@ struct GaussianToGaussianErrorMinimizer : public PointMatcher<T>::ErrorMinimizer
 
 	const T scaleFactor;
 
-	GaussianToGaussianErrorMinimizer(const Parameters& params = Parameters());
-	GaussianToGaussianErrorMinimizer(const ParametersDoc paramsDoc, const Parameters& params);
+	GaussianToGaussianToPlaneErrorMinimizer(const Parameters& params = Parameters());
+	GaussianToGaussianToPlaneErrorMinimizer(const ParametersDoc paramsDoc, const Parameters& params);
 	virtual TransformationParameters compute(const ErrorElements& mPts);
 };

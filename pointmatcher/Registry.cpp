@@ -119,6 +119,7 @@ PointMatcher<T>::PointMatcher()
 	ADD_TO_REGISTRAR(ErrorMinimizer, GaussianToPointErrorMinimizer, typename ErrorMinimizersImpl<T>::GaussianToPointErrorMinimizer)
 	ADD_TO_REGISTRAR(ErrorMinimizer, GaussianToPlaneErrorMinimizer, typename ErrorMinimizersImpl<T>::GaussianToPlaneErrorMinimizer)
 	ADD_TO_REGISTRAR(ErrorMinimizer, GaussianToGaussianErrorMinimizer, typename ErrorMinimizersImpl<T>::GaussianToGaussianErrorMinimizer)
+	ADD_TO_REGISTRAR(ErrorMinimizer, GaussianToGaussianToPlaneErrorMinimizer, typename ErrorMinimizersImpl<T>::GaussianToGaussianToPlaneErrorMinimizer)
 
 	ADD_TO_REGISTRAR(TransformationChecker, CounterTransformationChecker, typename TransformationCheckersImpl<T>::CounterTransformationChecker)
 	ADD_TO_REGISTRAR(TransformationChecker, DifferentialTransformationChecker, typename TransformationCheckersImpl<T>::DifferentialTransformationChecker)
