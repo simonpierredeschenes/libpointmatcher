@@ -17,10 +17,6 @@ namespace pointmatcher
 				.def_static("availableParameters", &GaussianToPlaneErrorMinimizer::availableParameters)
 
 				.def("name", &GaussianToPlaneErrorMinimizer::name)
-				.def("compute", &GaussianToPlaneErrorMinimizer::compute, py::arg("mPts"))
-				.def("compute_in_place", &GaussianToPlaneErrorMinimizer::compute_in_place, py::arg("mPts"))
-				.def("getResidualError", &GaussianToPlaneErrorMinimizer::getResidualError, py::arg("filteredReading"), py::arg("filteredReference"), py::arg("outlierWeights"), py::arg("matches"))
-				.def("getOverlap", &GaussianToPlaneErrorMinimizer::getOverlap)
-				.def("computeResidualError", &GaussianToPlaneErrorMinimizer::computeResidualError, py::arg("mPts"));
+				.def("compute", &GaussianToPlaneErrorMinimizer::compute, py::arg("mPts"));
 	}
 }

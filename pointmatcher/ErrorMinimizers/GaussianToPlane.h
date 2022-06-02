@@ -33,7 +33,7 @@ struct GaussianToPlaneErrorMinimizer : public PointMatcher<T>::ErrorMinimizer
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
-				{"scaleFactor", "The alignment error will be scaled by 1 / (scaleFactor + eigenValue).", "1", "0", "inf", &P::Comp < T > }
+				{"scaleFactor", "Minimum point variance", "0", "0", "inf", &P::Comp < T > }
 		};
 	}
 
@@ -42,11 +42,4 @@ struct GaussianToPlaneErrorMinimizer : public PointMatcher<T>::ErrorMinimizer
 	GaussianToPlaneErrorMinimizer(const Parameters& params = Parameters());
 	GaussianToPlaneErrorMinimizer(const ParametersDoc paramsDoc, const Parameters& params);
 	virtual TransformationParameters compute(const ErrorElements& mPts);
-	TransformationParameters compute_in_place(ErrorElements& mPts);
-	virtual T getResidualError(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches) const;
-	virtual T getOverlap() const;
-	T computeResidualError(ErrorElements mPts) const;
 };
-
-template<typename T, typename MatrixA, typename Vector>
-void solvePossiblyUnderdeterminedLinearSystem(const MatrixA& A, const Vector& b, Vector& x);
