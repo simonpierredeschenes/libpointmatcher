@@ -178,8 +178,8 @@ typename PointMatcher<T>::TransformationParameters GaussianToPlaneErrorMinimizer
 		gsl_matrix_set(gsl_R, 1, 2, gsl_matrix_get(gsl_R, 2, 0) * gsl_matrix_get(gsl_R, 0, 1) - gsl_matrix_get(gsl_R, 0, 0) * gsl_matrix_get(gsl_R, 2, 1));
 		gsl_matrix_set(gsl_R, 2, 2, gsl_matrix_get(gsl_R, 0, 0) * gsl_matrix_get(gsl_R, 1, 1) - gsl_matrix_get(gsl_R, 1, 0) * gsl_matrix_get(gsl_R, 0, 1));
 
-		// C_env = [[1,0,0],[0,inf,0],[0,0,inf]]
-		gsl_matrix_set_identity(C_env);
+		// C_env = [[0,0,0],[0,inf,0],[0,0,inf]]
+		gsl_matrix_set_zero(C_env);
 		gsl_matrix_set(C_env, 1, 1, 1e30);
 		gsl_matrix_set(C_env, 2, 2, 1e30);
 
