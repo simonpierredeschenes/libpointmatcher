@@ -576,8 +576,8 @@ void NoiseSkewDataPointsFilter<T>::inPlaceFilter(DataPoints& cloud)
 																	estimatedErrors.block(0, 0, 1, estimatedErrors.cols() - 1)).abs();
 				Array sortedCornerness(cornerness);
 				std::sort(sortedCornerness.data(), sortedCornerness.data() + sortedCornerness.size());
-				T lowerQuartile = sortedCornerness(0, std::ceil(sortedCornerness.cols() / 4.0) - 1);
-				T upperQuartile = sortedCornerness(0, std::ceil(3.0 * sortedCornerness.cols() / 4.0) - 1);
+				T lowerQuartile = sortedCornerness(0, (int)std::ceil(sortedCornerness.cols() / 4.0) - 1);
+				T upperQuartile = sortedCornerness(0, (int)std::ceil(3.0 * sortedCornerness.cols() / 4.0) - 1);
 				T IQR = upperQuartile - lowerQuartile;
 				T threshold = upperQuartile + (15 * IQR);
 				std::vector<int> cornerIds;
