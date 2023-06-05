@@ -123,8 +123,8 @@ DeskewingUncertaintyDataPointsFilter<T>::DeskewingUncertaintyDataPointsFilter(co
 		measureTimes(castToScalarVector(Parametrizable::getParamValueString("measureTimes"))
 		)
 {
-	std::vector<std::pair<T, T>> linearSpeedCovariances = readLookupTable<T>("/home/norlab/repos/libpointmatcher/linear_speed_covariances.csv");
-	std::vector<std::pair<T, T>> angularSpeedCovariances = readLookupTable<T>("/home/norlab/repos/libpointmatcher/angular_speed_covariances.csv");
+	std::vector<std::pair<T, T>> linearSpeedCovariances = readLookupTable<T>("/home/sp/repos/libpointmatcher/linear_speed_covariances.csv");
+	std::vector<std::pair<T, T>> angularSpeedCovariances = readLookupTable<T>("/home/sp/repos/libpointmatcher/angular_speed_covariances.csv");
 	if(linearSpeedCovariances.empty() || angularSpeedCovariances.empty())
 	{
 		throw std::runtime_error("Cannot read linear or angular speed covariance lookup tables.");
