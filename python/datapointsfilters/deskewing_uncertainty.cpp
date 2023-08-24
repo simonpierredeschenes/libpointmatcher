@@ -12,8 +12,6 @@ namespace pointmatcher
 				.def_static("description", &DeskewingUncertaintyDataPointsFilter::description)
 				.def_static("availableParameters", &DeskewingUncertaintyDataPointsFilter::availableParameters)
 
-				.def_readonly("linearVelocities", &DeskewingUncertaintyDataPointsFilter::linearVelocities)
-				.def_readonly("angularVelocities", &DeskewingUncertaintyDataPointsFilter::angularVelocities)
 				.def_readonly("motionGaussians", &DeskewingUncertaintyDataPointsFilter::motionGaussians)
 				.def_readonly("measureTimes", &DeskewingUncertaintyDataPointsFilter::measureTimes)
 

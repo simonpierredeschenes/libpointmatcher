@@ -4,29 +4,6 @@
 #include "utils/utils.h"
 #include <fstream>
 
-template<typename T>
-std::vector<std::pair<T, T>> readLookupTable(const std::string& fileName)
-{
-	std::vector<std::pair<T, T>> speedVariances;
-	std::ifstream file(fileName);
-	std::string line;
-	std::getline(file, line); // skip header
-	while(std::getline(file, line))
-	{
-		size_t tokenStartPosition = 0;
-		size_t tokenSize = line.find(",");
-		T minSpeed = T(std::stod(line.substr(tokenStartPosition, tokenSize)));
-		tokenStartPosition = tokenSize + 1;
-		tokenSize = line.find(",", tokenStartPosition) - tokenStartPosition;
-		T maxSpeed = T(std::stod(line.substr(tokenStartPosition, tokenSize)));
-		tokenStartPosition = tokenStartPosition + tokenSize + 1;
-		T covariance = T(std::stod(line.substr(tokenStartPosition)));
-		speedVariances.emplace_back(std::make_pair(minSpeed, covariance));
-	}
-	file.close();
-	return speedVariances;
-}
-
 template<typename Func>
 struct lambda_as_visitor_wrapper : Func
 {
@@ -83,6 +60,36 @@ DeskewingUncertaintyDataPointsFilter<T>::castToVectorVector(const std::string& x
 	return vector;
 }
 
+template<typename T>
+std::vector<typename PointMatcher<T>::Matrix>
+DeskewingUncertaintyDataPointsFilter<T>::castToMatrixVector(const std::string& xValues, const std::string& xyValues, const std::string& xzValues, const std::string& yValues,
+                                                            const std::string& yzValues, const std::string& zValues)
+{
+    std::vector<T> x = castToScalarVector(xValues);
+    std::vector<T> xy = castToScalarVector(xyValues);
+    std::vector<T> xz = castToScalarVector(xzValues);
+    std::vector<T> y = castToScalarVector(yValues);
+    std::vector<T> yz = castToScalarVector(yzValues);
+    std::vector<T> z = castToScalarVector(zValues);
+
+    std::vector<Matrix> vector;
+    for(unsigned int i = 0; i < x.size(); ++i)
+    {
+        Matrix matrix = Matrix::Zero(3, 3);
+        matrix(0, 0) = x[i];
+        matrix(0, 1) = xy[i];
+        matrix(0, 2) = xz[i];
+        matrix(1, 0) = xy[i];
+        matrix(1, 1) = y[i];
+        matrix(1, 2) = yz[i];
+        matrix(2, 0) = xz[i];
+        matrix(2, 1) = yz[i];
+        matrix(2, 2) = z[i];
+        vector.push_back(matrix);
+    }
+    return vector;
+}
+
 // https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
 template<typename T>
 template<typename U>
@@ -114,71 +121,24 @@ void DeskewingUncertaintyDataPointsFilter<T>::applyOrdering(const std::vector<in
 template<typename T>
 DeskewingUncertaintyDataPointsFilter<T>::DeskewingUncertaintyDataPointsFilter(const Parameters& params):
 		PointMatcher<T>::DataPointsFilter("DeskewingUncertaintyDataPointsFilter", DeskewingUncertaintyDataPointsFilter::availableParameters(), params),
-		linearVelocities(castToVectorVector(Parametrizable::getParamValueString("linearSpeedsX"),
-											Parametrizable::getParamValueString("linearSpeedsY"),
-											Parametrizable::getParamValueString("linearSpeedsZ"))),
-		angularVelocities(castToVectorVector(Parametrizable::getParamValueString("angularSpeedsX"),
-											 Parametrizable::getParamValueString("angularSpeedsY"),
-											 Parametrizable::getParamValueString("angularSpeedsZ"))),
-		measureTimes(castToScalarVector(Parametrizable::getParamValueString("measureTimes"))
-		)
+        measureTimes(castToScalarVector(Parametrizable::getParamValueString("measureTimes")))
 {
-	std::vector<std::pair<T, T>> linearSpeedCovariances = readLookupTable<T>("/home/sp/repos/libpointmatcher/linear_speed_covariances.csv");
-	std::vector<std::pair<T, T>> angularSpeedCovariances = readLookupTable<T>("/home/sp/repos/libpointmatcher/angular_speed_covariances.csv");
-	if(linearSpeedCovariances.empty() || angularSpeedCovariances.empty())
-	{
-		throw std::runtime_error("Cannot read linear or angular speed covariance lookup tables.");
-	}
+    std::vector<Vector> linearVelocities = castToVectorVector(Parametrizable::getParamValueString("linearSpeedsX"), Parametrizable::getParamValueString("linearSpeedsY"), Parametrizable::getParamValueString("linearSpeedsZ"));
+    std::vector<Matrix> linearVelocityCovariances = castToMatrixVector(Parametrizable::getParamValueString("linearSpeedVariancesX"), Parametrizable::getParamValueString("linearSpeedCovariancesXY"),
+                                                                        Parametrizable::getParamValueString("linearSpeedCovariancesXZ"), Parametrizable::getParamValueString("linearSpeedVariancesY"),
+                                                                        Parametrizable::getParamValueString("linearSpeedCovariancesYZ"), Parametrizable::getParamValueString("linearSpeedVariancesZ"));
+    std::vector<Vector> angularVelocities = castToVectorVector(Parametrizable::getParamValueString("angularSpeedsX"), Parametrizable::getParamValueString("angularSpeedsY"), Parametrizable::getParamValueString("angularSpeedsZ"));
+    std::vector<Matrix> angularVelocityCovariances = castToMatrixVector(Parametrizable::getParamValueString("angularSpeedVariancesX"), Parametrizable::getParamValueString("angularSpeedCovariancesXY"),
+                                                                        Parametrizable::getParamValueString("angularSpeedCovariancesXZ"), Parametrizable::getParamValueString("angularSpeedVariancesY"),
+                                                                        Parametrizable::getParamValueString("angularSpeedCovariancesYZ"), Parametrizable::getParamValueString("angularSpeedVariancesZ"));
 
 	for(unsigned int i = 0; i < linearVelocities.size(); ++i)
 	{
-		unsigned int index = 0;
-		while(index + 1 < linearSpeedCovariances.size() && std::fabs(linearVelocities[i](0)) >= linearSpeedCovariances[index + 1].first)
-		{
-			++index;
-		}
-		T linearSpeedVarianceX = linearSpeedCovariances[index].second;
-		index = 0;
-		while(index + 1 < linearSpeedCovariances.size() && std::fabs(linearVelocities[i](1)) >= linearSpeedCovariances[index + 1].first)
-		{
-			++index;
-		}
-		T linearSpeedVarianceY = linearSpeedCovariances[index].second;
-		index = 0;
-		while(index + 1 < linearSpeedCovariances.size() && std::fabs(linearVelocities[i](2)) >= linearSpeedCovariances[index + 1].first)
-		{
-			++index;
-		}
-		T linearSpeedVarianceZ = linearSpeedCovariances[index].second;
-
-		index = 0;
-		while(index + 1 < angularSpeedCovariances.size() && std::fabs(angularVelocities[i](0)) >= angularSpeedCovariances[index + 1].first)
-		{
-			++index;
-		}
-		T angularSpeedVarianceX = angularSpeedCovariances[index].second;
-		index = 0;
-		while(index + 1 < angularSpeedCovariances.size() && std::fabs(angularVelocities[i](1)) >= angularSpeedCovariances[index + 1].first)
-		{
-			++index;
-		}
-		T angularSpeedVarianceY = angularSpeedCovariances[index].second;
-		index = 0;
-		while(index + 1 < angularSpeedCovariances.size() && std::fabs(angularVelocities[i](2)) >= angularSpeedCovariances[index + 1].first)
-		{
-			++index;
-		}
-		T angularSpeedVarianceZ = angularSpeedCovariances[index].second;
-
 		Gaussian<T> motionGaussian;
 		motionGaussian.mean = Vector::Zero(6);
 		motionGaussian.covariance = Matrix::Zero(6, 6);
-		motionGaussian.covariance(0, 0) = linearSpeedVarianceX;
-		motionGaussian.covariance(1, 1) = linearSpeedVarianceY;
-		motionGaussian.covariance(2, 2) = linearSpeedVarianceZ;
-		motionGaussian.covariance(3, 3) = angularSpeedVarianceX;
-		motionGaussian.covariance(4, 4) = angularSpeedVarianceY;
-		motionGaussian.covariance(5, 5) = angularSpeedVarianceZ;
+		motionGaussian.covariance.topLeftCorner(3, 3) = linearVelocityCovariances[i];
+        motionGaussian.covariance.bottomRightCorner(3, 3) = angularVelocityCovariances[i];
 		motionGaussians.push_back(motionGaussian);
 	}
 }
