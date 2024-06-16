@@ -608,3 +608,20 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 
 template struct OutlierFiltersImpl<float>::RobustOutlierFilter;
 template struct OutlierFiltersImpl<double>::RobustOutlierFilter;
+
+// TimeOutlierFilter
+template<typename T>
+typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::TimeOutlierFilter::compute(
+        const DataPoints& filteredReading,
+        const DataPoints& filteredReference,
+        const Matches& input)
+{
+    typename DataPoints::ConstView pointStamps = filteredReading.getDescriptorViewByName("t");
+    std::int64_t minStamp = pointStamps.minCoeff();
+    std::int64_t maxStamp = pointStamps.maxCoeff();
+    Matrix readingPointWeights = (pointStamps.array() - minStamp) / (maxStamp - minStamp);
+    return readingPointWeights.replicate(input.ids.rows(), 1);
+}
+
+template struct OutlierFiltersImpl<float>::TimeOutlierFilter;
+template struct OutlierFiltersImpl<double>::TimeOutlierFilter;
