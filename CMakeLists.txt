@@ -342,6 +342,7 @@ set(POINTMATCHER_SRC
 	pointmatcher/DataPointsFilters/Sphericality.cpp
 	pointmatcher/DataPointsFilters/Saliency.cpp
 	pointmatcher/DataPointsFilters/SpectralDecomposition.cpp
+	pointmatcher/DataPointsFilters/NoiseSkew.cpp
 )
 
 
