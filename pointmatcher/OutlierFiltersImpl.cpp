@@ -619,7 +619,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::TimeOutlierFilte
     typename DataPoints::ConstView pointStamps = filteredReading.getDescriptorViewByName("t");
     std::int64_t minStamp = pointStamps.minCoeff();
     std::int64_t maxStamp = pointStamps.maxCoeff();
-    Matrix readingPointWeights = (pointStamps.array() - minStamp) / (maxStamp - minStamp);
+    Matrix readingPointWeights = ((pointStamps.array() - minStamp) / (maxStamp - minStamp)).pow(2);
     return readingPointWeights.replicate(input.ids.rows(), 1);
 }
 
